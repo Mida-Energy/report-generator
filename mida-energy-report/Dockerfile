@@ -30,5 +30,9 @@ COPY app_addon.py /app/app.py
 # Copy s6 service files
 COPY rootfs /
 
+# Make s6 scripts executable
+RUN chmod a+x /etc/services.d/mida-report/run \
+    && chmod a+x /etc/services.d/mida-report/finish
+
 # Set working directory
 WORKDIR /app
