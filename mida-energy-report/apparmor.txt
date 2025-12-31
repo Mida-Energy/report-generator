@@ -1,0 +1,10 @@
+{
+  "host_network": false,
+  "hassio_api": true,
+  "hassio_role": "default",
+  "homeassistant_api": true,
+  "auth_api": false,
+  "ingress": true,
+  "ingress_port": 5000,
+  "panel_icon": "mdi:file-chart"
+}
