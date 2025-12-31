@@ -44,4 +44,4 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
 
 EXPOSE 5000
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
