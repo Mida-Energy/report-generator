@@ -10,7 +10,7 @@
   "privileged": ["SYS_ADMIN", "SYS_RAWIO"],
   "full_access": true,
   "apparmor": false,
-  "image": "ghcr.io/mida-energy/mida-energy-report-{arch}",
+  "image": "ghcr.io/mida-energy/energy-reports-{arch}",
   "ports": {
     "5000/tcp": 5000
   },
@@ -22,7 +22,8 @@
   "panel_title": "Mida Energy Reports",
   "map": [
     "config:rw",
-    "share:rw"
+    "share:rw",
+    "media:rw"
   ],
   "homeassistant_api": true,
   "hassio_api": true,

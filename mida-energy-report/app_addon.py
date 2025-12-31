@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Get paths from environment (set by add-on)
 DATA_PATH = Path(os.getenv('DATA_PATH', '/config/mida_energy/data'))
-OUTPUT_PATH = Path('/share/mida_energy_reports')
+OUTPUT_PATH = Path('/media/mida_energy_reports')
 OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 DATA_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -252,7 +252,10 @@ def home():
                         btn.disabled = false;
                         btn.innerHTML = '🔄 Genera Report PDF';
                         if (data.status === 'success') {
-                            showStatus('✅ Report generato con successo! Dimensione: ' + data.pdf_size_kb + ' KB', 'success');
+                            showStatus('✅ Report generato con successo! Dimensione: ' + data.pdf_size_kb + ' KB<br>' +
+                                      '<a href="/download/latest" style="color: #fff; background: #4caf50; padding: 10px 20px; ' +
+                                      'text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">' +
+                                      '📥 Clicca qui per scaricare sul tuo PC</a>', 'success');
                         } else {
                             showStatus('❌ Errore: ' + data.message, 'error');
                         }

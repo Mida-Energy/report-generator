@@ -69,8 +69,8 @@ jobs:
           platforms: ${{ steps.vars.outputs.platform }}
           push: true
           tags: |
-            ghcr.io/${{ steps.vars.outputs.owner }}/mida-energy-report-${{ steps.vars.outputs.arch }}:${{ steps.version.outputs.version }}
-            ghcr.io/${{ steps.vars.outputs.owner }}/mida-energy-report-${{ steps.vars.outputs.arch }}:latest
+            ghcr.io/${{ steps.vars.outputs.owner }}/energy-reports-${{ steps.vars.outputs.arch }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.vars.outputs.owner }}/energy-reports-${{ steps.vars.outputs.arch }}:latest
           build-args: |
             BUILD_FROM=${{ steps.vars.outputs.base }}
             BUILD_VERSION=${{ steps.version.outputs.version }}
