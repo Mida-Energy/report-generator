@@ -13,7 +13,8 @@ RUN apk add --no-cache \
     g++ \
     python3-dev \
     musl-dev \
-    linux-headers
+    linux-headers \
+    bash
 
 # Copy requirements and install Python packages
 COPY requirements.txt /tmp/
@@ -30,8 +31,8 @@ COPY app_addon.py /app/app.py
 # Copy s6 service
 COPY rootfs /
 
-# Make sure run script is executable
-RUN chmod +x /etc/services.d/mida-report/run
-
 # Set working directory
 WORKDIR /app
+
+# The base image already has the correct ENTRYPOINT for s6
+# No need to override it
