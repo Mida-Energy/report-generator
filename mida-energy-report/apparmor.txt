@@ -1,10 +1,81 @@
-{
-  "host_network": false,
-  "hassio_api": true,
-  "hassio_role": "default",
-  "homeassistant_api": true,
-  "auth_api": false,
-  "ingress": true,
-  "ingress_port": 5000,
-  "panel_icon": "mdi:file-chart"
+#include <tunables/global>
+
+profile mida_energy_report flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  capability net_admin,
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  capability sys_admin,
+  capability sys_rawio,
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Access to options.json and other files within your addon
+  /data/** rw,
+
+  # Start new profile for service
+  /app/run.sh cx -> run.sh,
+
+  profile run.sh flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+
+    # Receive signals from S6-Overlay
+    signal (receive) peer=*_mida_energy_report,
+
+    # Access to options.json and other files within your addon
+    /data/** rw,
+    /share/** rw,
+    /config/** rw,
+
+    # Access to mapped volumes
+    /share/** rw,
+    /config/** rw,
+
+    # Access to python and pip
+    /usr/bin/python3* ix,
+    /usr/bin/pip* ix,
+    /usr/lib/python3*/** r,
+
+    # Access to gunicorn
+    /usr/bin/gunicorn* ix,
+    /usr/local/bin/gunicorn* ix,
+
+    # Access to flask app
+    /app/** r,
+    /app/*.py ix,
+    /app/report_generator/** r,
+
+    # Access to temp directories
+    /tmp/** rw,
+    /var/tmp/** rw,
+
+    # Access to /proc for system info
+    /proc/sys/kernel/random/boot_id r,
+    /sys/devices/virtual/dmi/id/product_uuid r,
+
+    # Bashio
+    /usr/lib/bashio/** ix,
+    /bin/bash ix,
+    /usr/bin/** ix,
+    /bin/** ix,
+    /command/** ix,
+  }
 }
