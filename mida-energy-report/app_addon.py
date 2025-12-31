@@ -21,9 +21,21 @@ from main import ShellyEnergyReport
 
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging for Gunicorn compatibility
+if __name__ != '__main__':
+    # Running under Gunicorn
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+    logger = app.logger
+else:
+    # Running standalone
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+    logger = logging.getLogger(__name__)
 
 # Get paths from environment (set by add-on)
 DATA_PATH = Path(os.getenv('DATA_PATH', '/share/energy_reports/data'))
