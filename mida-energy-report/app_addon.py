@@ -507,19 +507,33 @@ def get_status():
         }), 500
 
 
-if __name__ == '__main__':
-    # Ensure directories exist
+# Initialize on module load (for Gunicorn)
+def initialize_addon():
+    """Initialize addon when module is loaded"""
     DATA_PATH.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     
-    logger.info("Starting Energy Reports API (Add-on mode)...")
+    logger.info("=" * 60)
+    logger.info("ENERGY REPORTS ADD-ON STARTING")
+    logger.info("=" * 60)
     logger.info(f"Data path: {DATA_PATH}")
     logger.info(f"Output path: {OUTPUT_PATH}")
     logger.info(f"Supervisor token available: {bool(SUPERVISOR_TOKEN)}")
+    logger.info("=" * 60)
     
     # Start background data collection
     start_background_collection()
+
+
+# Initialize when running under Gunicorn
+if __name__ != '__main__':
+    initialize_addon()
+
+
+if __name__ == '__main__':
+    # Running standalone (not under Gunicorn)
+    initialize_addon()
     
-    # Run server (production mode for add-on)
+    # Run server (development mode)
     app.run(host='0.0.0.0', port=5000, debug=False)
 
