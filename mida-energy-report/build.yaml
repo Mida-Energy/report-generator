@@ -1,31 +1,20 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.11-alpine3.18
+  amd64: ghcr.io/home-assistant/amd64-base-python:3.11-alpine3.18
+  armhf: ghcr.io/home-assistant/armhf-base-python:3.11-alpine3.18
+  armv7: ghcr.io/home-assistant/armv7-base-python:3.11-alpine3.18
+  i386: ghcr.io/home-assistant/i386-base-python:3.11-alpine3.18
+labels:
+  io.hass.name: "Mida Energy Report Generator"
+  io.hass.description: "Generate PDF energy reports from Shelly EM data"
+  io.hass.type: "addon"
+  maintainer: "Mida Energy"
+  org.opencontainers.image.title: "Mida Energy Report Generator"
+  org.opencontainers.image.description: "Generate PDF energy reports from Shelly EM data"
+  org.opencontainers.image.vendor: "Mida Energy"
+  org.opencontainers.image.authors: "Mida Energy"
+  org.opencontainers.image.licenses: "MIT"
+  org.opencontainers.image.url: "https://github.com/Mida-Energy/report-generator"
+  org.opencontainers.image.source: "https://github.com/Mida-Energy/report-generator"
+  org.opencontainers.image.documentation: "https://github.com/Mida-Energy/report-generator/blob/main/README.md"
 
-# Add build arguments
-ARG BUILD_ARCH
-ARG BUILD_DATE
-ARG BUILD_DESCRIPTION
-ARG BUILD_NAME
-ARG BUILD_REF
-ARG BUILD_REPOSITORY
-ARG BUILD_VERSION
-
-# Labels
-LABEL \
-    io.hass.name="${BUILD_NAME}" \
-    io.hass.description="${BUILD_DESCRIPTION}" \
-    io.hass.arch="${BUILD_ARCH}" \
-    io.hass.type="addon" \
-    io.hass.version=${BUILD_VERSION} \
-    maintainer="Mida Energy" \
-    org.opencontainers.image.title="${BUILD_NAME}" \
-    org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
-    org.opencontainers.image.vendor="Mida Energy" \
-    org.opencontainers.image.authors="Mida Energy" \
-    org.opencontainers.image.licenses="MIT" \
-    org.opencontainers.image.url="https://github.com/Mida-Energy/report-generator" \
-    org.opencontainers.image.source="https://github.com/${BUILD_REPOSITORY}" \
-    org.opencontainers.image.documentation="https://github.com/${BUILD_REPOSITORY}/blob/main/README.md" \
-    org.opencontainers.image.created=${BUILD_DATE} \
-    org.opencontainers.image.revision=${BUILD_REF} \
-    org.opencontainers.image.version=${BUILD_VERSION}
