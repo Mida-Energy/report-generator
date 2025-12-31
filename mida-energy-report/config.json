@@ -25,7 +25,7 @@
     "share:rw"
   ],
   "options": {
-    "data_path": "/config/mida_energy/data",
+    "data_path": "/share/mida_energy/data",
     "auto_export_enabled": true,
     "export_interval_hours": 1
   },
