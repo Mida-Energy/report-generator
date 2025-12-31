@@ -1,19 +1,18 @@
-#!/bin/bash
-set -e
+#!/usr/bin/with-contenv bashio
 # ==============================================================================
 # Start Mida Energy Report Generator Add-on
 # ==============================================================================
 
-echo "[INFO] Starting Mida Energy Report Generator..."
+bashio::log.info "Starting Mida Energy Report Generator..."
 
-# Read configuration from add-on options (fallback to defaults if not set)
-DATA_PATH="${DATA_PATH:-/config/mida_energy/data}"
-AUTO_EXPORT="${AUTO_EXPORT:-true}"
-EXPORT_INTERVAL="${EXPORT_INTERVAL:-1}"
+# Read configuration from add-on options
+DATA_PATH=$(bashio::config 'data_path')
+AUTO_EXPORT=$(bashio::config 'auto_export_enabled')
+EXPORT_INTERVAL=$(bashio::config 'export_interval_hours')
 
-echo "[INFO] Data path: ${DATA_PATH}"
-echo "[INFO] Auto export: ${AUTO_EXPORT}"
-echo "[INFO] Export interval: ${EXPORT_INTERVAL} hours"
+bashio::log.info "Data path: ${DATA_PATH}"
+bashio::log.info "Auto export: ${AUTO_EXPORT}"
+bashio::log.info "Export interval: ${EXPORT_INTERVAL} hours"
 
 # Create data directory if it doesn't exist
 mkdir -p "${DATA_PATH}"
@@ -24,7 +23,7 @@ export DATA_PATH="${DATA_PATH}"
 export AUTO_EXPORT="${AUTO_EXPORT}"
 export EXPORT_INTERVAL="${EXPORT_INTERVAL}"
 
-echo "[INFO] Starting API server on port 5000..."
+bashio::log.info "Starting API server on port 5000..."
 
 # Start the Flask API server
 cd /app

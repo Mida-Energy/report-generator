@@ -26,13 +26,9 @@ RUN pip3 install --no-cache-dir --break-system-packages flask gunicorn
 WORKDIR /
 COPY report_generator/ /app/report_generator/
 COPY app_addon.py /app/app.py
-COPY run.sh /app/run.sh
 
-# Make run script executable
-RUN chmod +x /app/run.sh
+# Copy s6 service files
+COPY rootfs /
 
 # Set working directory
 WORKDIR /app
-
-# Run the add-on
-CMD ["/bin/bash", "/app/run.sh"]
