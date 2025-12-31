@@ -8,6 +8,11 @@ import sys
 import logging
 from datetime import datetime
 import os
+import requests
+import csv
+import threading
+import time
+from io import StringIO
 
 # Add report generator to path
 sys.path.insert(0, str(Path(__file__).parent / 'report_generator' / 'src'))
@@ -24,6 +29,140 @@ logger = logging.getLogger(__name__)
 DATA_PATH = Path(os.getenv('DATA_PATH', '/config/mida_energy/data'))
 OUTPUT_PATH = Path('/share/mida_energy_reports')
 OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+DATA_PATH.mkdir(parents=True, exist_ok=True)
+
+# Home Assistant API configuration
+SUPERVISOR_TOKEN = os.getenv('SUPERVISOR_TOKEN', '')
+HA_API_URL = "http://supervisor/core/api"
+HEADERS = {
+    "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+# Data collection thread
+collection_thread = None
+stop_collection = False
+
+
+class ShellyDataCollector:
+    """Collects data from Shelly devices via Home Assistant API"""
+    
+    def __init__(self, entity_ids, interval_seconds=300):
+        self.entity_ids = entity_ids
+        self.interval = interval_seconds
+        self.csv_file = DATA_PATH / "all.csv"
+        self.running = False
+        
+    def get_entity_state(self, entity_id):
+        """Get entity state from Home Assistant"""
+        try:
+            url = f"{HA_API_URL}/states/{entity_id}"
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Failed to get state for {entity_id}: {response.status_code}")
+                return None
+        except Exception as e:
+            logger.error(f"Error getting state for {entity_id}: {e}")
+            return None
+    
+    def collect_and_save(self):
+        """Collect data from all entities and save to CSV"""
+        try:
+            # Collect data from all entities
+            data_row = {
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            for entity_id in self.entity_ids:
+                state_data = self.get_entity_state(entity_id)
+                if state_data:
+                    # Extract friendly name and value
+                    friendly_name = state_data.get('attributes', {}).get('friendly_name', entity_id)
+                    value = state_data.get('state', '0')
+                    
+                    # Try to convert to float
+                    try:
+                        value = float(value)
+                    except:
+                        value = 0.0
+                    
+                    data_row[friendly_name] = value
+            
+            # Check if file exists to determine if we need headers
+            file_exists = self.csv_file.exists()
+            
+            # Write to CSV
+            with open(self.csv_file, 'a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=data_row.keys())
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerow(data_row)
+            
+            logger.info(f"Data collected and saved: {len(data_row)-1} entities")
+            
+        except Exception as e:
+            logger.error(f"Error collecting data: {e}", exc_info=True)
+    
+    def start_collection(self):
+        """Start background data collection"""
+        self.running = True
+        logger.info(f"Starting data collection every {self.interval} seconds for entities: {self.entity_ids}")
+        
+        while self.running and not stop_collection:
+            self.collect_and_save()
+            time.sleep(self.interval)
+        
+        logger.info("Data collection stopped")
+
+
+def start_background_collection():
+    """Start background data collection thread"""
+    global collection_thread
+    
+    # Read configuration
+    auto_export = os.getenv('AUTO_EXPORT', 'true').lower() == 'true'
+    interval_hours = int(os.getenv('EXPORT_INTERVAL', '1'))
+    
+    # For now, we'll auto-discover Shelly entities
+    # In a future version, this could be configurable
+    entity_ids = discover_shelly_entities()
+    
+    if entity_ids and auto_export:
+        collector = ShellyDataCollector(entity_ids, interval_seconds=interval_hours * 3600)
+        collection_thread = threading.Thread(target=collector.start_collection, daemon=True)
+        collection_thread.start()
+        logger.info("Background data collection started")
+    else:
+        logger.info("Auto-collection disabled or no Shelly entities found")
+
+
+def discover_shelly_entities():
+    """Discover Shelly power/energy entities from Home Assistant"""
+    try:
+        url = f"{HA_API_URL}/states"
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        
+        if response.status_code != 200:
+            logger.error(f"Failed to get states: {response.status_code}")
+            return []
+        
+        all_states = response.json()
+        shelly_entities = []
+        
+        # Look for Shelly energy/power sensors
+        for state in all_states:
+            entity_id = state.get('entity_id', '')
+            if 'shelly' in entity_id.lower() and any(x in entity_id for x in ['power', 'energy']):
+                shelly_entities.append(entity_id)
+        
+        logger.info(f"Discovered {len(shelly_entities)} Shelly entities: {shelly_entities}")
+        return shelly_entities
+        
+    except Exception as e:
+        logger.error(f"Error discovering Shelly entities: {e}")
+        return []
 
 
 @app.route('/')
@@ -61,8 +200,10 @@ def home():
             <h1>📊 Mida Energy Report Generator</h1>
             <div class="info-box">
                 <strong>Data Path:</strong> """ + str(DATA_PATH) + """<br>
-                <strong>Reports Path:</strong> """ + str(OUTPUT_PATH) + """
+                <strong>Reports Path:</strong> """ + str(OUTPUT_PATH) + """<br>
+                <strong>Auto-Collection:</strong> """ + str(os.getenv('AUTO_EXPORT', 'true')) + """
             </div>
+            <button class="btn" onclick="collectData()">📊 Raccogli Dati Shelly Ora</button>
             <button class="btn" onclick="generateReport()">🔄 Genera Report PDF</button>
             <button class="btn btn-download" onclick="downloadReport()">📥 Scarica Ultimo Report</button>
             <div id="status" class="status"></div>
@@ -73,7 +214,31 @@ def home():
                 statusDiv.className = 'status ' + type;
                 statusDiv.innerHTML = message;
                 statusDiv.style.display = 'block';
+            }collectData() {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Raccolta dati...<span class="spinner"></span>';
+                showStatus('Raccolta dati dai dispositivi Shelly in corso...', 'info');
+                
+                fetch('/collect-data', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        btn.innerHTML = '📊 Raccogli Dati Shelly Ora';
+                        if (data.status === 'success') {
+                            showStatus('✅ Dati raccolti: ' + data.entities_count + ' entità, salvate in CSV', 'success');
+                        } else {
+                            showStatus('❌ Errore: ' + data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        btn.disabled = false;
+                        btn.innerHTML = '📊 Raccogli Dati Shelly Ora';
+                        showStatus('❌ Errore di rete: ' + error, 'error');
+                    });
             }
+            
+            function 
             
             function generateReport() {
                 const btn = event.target;
@@ -113,6 +278,39 @@ def home():
 def health():
     """Health check for Home Assistant"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
+
+@app.route('/collect-data', methods=['POST'])
+def collect_data():
+    """Manually trigger data collection from Shelly devices"""
+    try:
+        # Discover Shelly entities
+        entity_ids = discover_shelly_entities()
+        
+        if not entity_ids:
+            return jsonify({
+                'status': 'error',
+                'message': 'No Shelly entities found in Home Assistant'
+            }), 404
+        
+        # Collect data immediately
+        collector = ShellyDataCollector(entity_ids, interval_seconds=300)
+        collector.collect_and_save()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Data collected successfully',
+            'entities_count': len(entity_ids),
+            'entities': entity_ids,
+            'csv_file': str(collector.csv_file)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error collecting data: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 @app.route('/generate', methods=['POST'])
@@ -257,6 +455,11 @@ if __name__ == '__main__':
     logger.info("Starting Mida Energy Report API (Add-on mode)...")
     logger.info(f"Data path: {DATA_PATH}")
     logger.info(f"Output path: {OUTPUT_PATH}")
+    logger.info(f"Supervisor token available: {bool(SUPERVISOR_TOKEN)}")
+    
+    # Start background data collection
+    start_background_collection()
     
     # Run server (production mode for add-on)
     app.run(host='0.0.0.0', port=5000, debug=False)
+

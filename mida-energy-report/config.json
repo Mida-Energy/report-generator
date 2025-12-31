@@ -24,6 +24,9 @@
     "config:rw",
     "share:rw"
   ],
+  "homeassistant_api": true,
+  "hassio_api": true,
+  "hassio_role": "default",
   "options": {
     "data_path": "/share/mida_energy/data",
     "auto_export_enabled": true,
