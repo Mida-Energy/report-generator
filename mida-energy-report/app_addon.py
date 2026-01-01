@@ -393,15 +393,13 @@ def start_background_collection():
 def discover_shelly_entities():
     """Discover Shelly power/energy entities from Home Assistant"""
     try:
-        logger.info("=" * 60)
         logger.info("Discovering Shelly entities from Home Assistant...")
-        logger.info("=" * 60)
         
         url = f"{HA_API_URL}/states"
         response = requests.get(url, headers=HEADERS, timeout=10)
         
         if response.status_code != 200:
-            logger.error(f"[FAIL] Failed to get states from HA API: {response.status_code}")
+            logger.error(f"Failed to get states from HA API: {response.status_code}")
             return []
         
         all_states = response.json()
@@ -416,17 +414,12 @@ def discover_shelly_entities():
                     'entity_id': entity_id,
                     'friendly_name': friendly_name
                 })
-                logger.info(f"  [OK] Found: {entity_id}")
         
-        logger.info("=" * 60)
-        logger.info(f"[SUCCESS] Discovery complete: {len(shelly_entities)} Shelly entities found")
-        logger.info("=" * 60)
+        logger.info(f"Discovery complete: {len(shelly_entities)} Shelly entities found")
         return shelly_entities
         
     except Exception as e:
-        logger.error("=" * 60)
-        logger.error(f"[ERROR] Error discovering Shelly entities: {e}")
-        logger.error("=" * 60)
+        logger.error(f"Error discovering Shelly entities: {e}")
         return []
 
 
@@ -823,20 +816,27 @@ def home():
             
             function loadDevices() {
                 fetch('/api/entities')
-                    .then(response => response.json())
-                    .then(data => {
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers);
+                        return response.text();
+                    })
+                    .then(text => {
+                        console.log('Raw response:', text);
+                        const data = JSON.parse(text);
                         if (data.status === 'success') {
                             availableEntities = data.entities;
                             selectedEntities = data.selected || [];
                             renderDeviceList();
                         } else {
                             document.getElementById('deviceList').innerHTML = 
-                                '<div style="text-align: center; padding: 20px; color: #e57373;">Error loading devices</div>';
+                                '<div style="text-align: center; padding: 20px; color: #e57373;">Error: ' + (data.message || 'Unknown error') + '</div>';
                         }
                     })
                     .catch(error => {
+                        console.error('Failed to load devices:', error);
                         document.getElementById('deviceList').innerHTML = 
-                            '<div style="text-align: center; padding: 20px; color: #e57373;">Failed to load devices</div>';
+                            '<div style="text-align: center; padding: 20px; color: #e57373;">Failed to load devices: ' + error.message + '</div>';
                     });
             }
             
@@ -916,13 +916,9 @@ def health():
 @app.route('/api/entities', methods=['GET'])
 def get_entities():
     """Get list of available Shelly entities"""
-    logger.info("=" * 60)
-    logger.info("API REQUEST: GET /api/entities")
-    logger.info("=" * 60)
-    
+    logger.info("API: GET /api/entities")
     try:
         entities = discover_shelly_entities()
-        logger.info(f"Discovered {len(entities)} entities")
         
         # Load selected entities from file
         config_file = DATA_PATH / 'selected_entities.json'
@@ -930,23 +926,19 @@ def get_entities():
         if config_file.exists():
             with open(config_file, 'r') as f:
                 selected = json.load(f)
-            logger.info(f"Loaded {len(selected)} selected entities from config")
-        else:
-            logger.info("No selected entities config found")
         
-        logger.info("=" * 60)
-        logger.info(f"[SUCCESS] Returning {len(entities)} entities, {len(selected)} selected")
-        logger.info("=" * 60)
+        logger.info(f"Returning {len(entities)} entities, {len(selected)} selected")
         
-        return jsonify({
+        # Build response and return immediately
+        response_data = {
             'status': 'success',
             'entities': entities,
             'selected': selected
-        })
+        }
+        return jsonify(response_data)
+        
     except Exception as e:
-        logger.error("=" * 60)
-        logger.error(f"[ERROR] Failed to get entities: {e}", exc_info=True)
-        logger.error("=" * 60)
+        logger.error(f"Error in get_entities: {e}")
         return jsonify({
             'status': 'error',
             'message': str(e)
