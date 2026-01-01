@@ -178,7 +178,7 @@ class PDFReportGenerator:
         story.append(Spacer(1, 20))
         
         # Scheda riassuntiva
-        story.append(Paragraph("📊 SCHEDA RIASSUNTIVA", self.styles['SectionTitle']))
+        story.append(Paragraph("SCHEDA RIASSUNTIVA", self.styles['SectionTitle']))
         
         # Crea tabella riassuntiva
         summary_data = [
@@ -209,7 +209,7 @@ class PDFReportGenerator:
         story.append(Spacer(1, 20))
         
         # Sezione grafici
-        story.append(Paragraph("📈 GRAFICI ANALISI", self.styles['SectionTitle']))
+        story.append(Paragraph("GRAFICI ANALISI", self.styles['SectionTitle']))
         
         # Aggiungi grafici
         for plot_path in plot_paths:
@@ -268,7 +268,7 @@ class PDFReportGenerator:
         story.append(Spacer(1, 20))
         
         # Raccomandazioni
-        story.append(Paragraph("🎯 RACCOMANDAZIONI E SUGGERIMENTI", self.styles['SectionTitle']))
+        story.append(Paragraph("RACCOMANDAZIONI E SUGGERIMENTI", self.styles['SectionTitle']))
         
         recommendations = []
         if analysis.get('peak_count', 0) > 10:
@@ -650,15 +650,15 @@ class ShellyEnergyReport:
             raise FileNotFoundError(f"Nessun file CSV trovato in {self.data_dir}")
         
         self.data_files = sorted(csv_files)
-        print(f"📂 Trovati {len(self.data_files)} file CSV:")
+        print(f"Trovati {len(self.data_files)} file CSV:")
         for f in self.data_files:
-            print(f"  • {f.name}")
+            print(f"  - {f.name}")
         
         return self.data_files
     
     def _load_and_correct_csv(self, file_path: Path) -> pd.DataFrame:
         """Carica e corregge un file CSV."""
-        print(f"  📄 Caricando: {file_path.name}")
+        print(f"  Caricando: {file_path.name}")
         
         try:
             df = pd.read_csv(file_path, encoding=self.encoding)
@@ -667,7 +667,7 @@ class ShellyEnergyReport:
                 try:
                     df = pd.read_csv(file_path, encoding=enc)
                     self.encoding = enc
-                    print(f"    → Encoding rilevato: {enc}")
+                    print(f"    - Encoding rilevato: {enc}")
                     break
                 except:
                     continue
@@ -677,7 +677,7 @@ class ShellyEnergyReport:
         df['source_file'] = file_path.name
         
         if 'timestamp' not in df.columns:
-            print(f"    ⚠️  Nessuna colonna 'timestamp' trovata")
+            print(f"    [WARN] Nessuna colonna 'timestamp' trovata")
             df['timestamp'] = int(datetime.now().timestamp()) + df.index * 60
         
         return df
@@ -693,7 +693,7 @@ class ShellyEnergyReport:
         time_diff = current_time - latest_timestamp_raw
         
         if abs(time_diff.days) > 30:
-            print(f"    ⚙️  Correzione timestamp: {abs(time_diff.days)} giorni di differenza")
+            print(f"    [INFO] Correzione timestamp: {abs(time_diff.days)} giorni di differenza")
             correction_seconds = time_diff.total_seconds()
             df['timestamp_corrected'] = df['timestamp'] + correction_seconds
             df['datetime'] = pd.to_datetime(df['timestamp_corrected'], unit='s')

@@ -26,9 +26,8 @@ app = Flask(__name__)
 @app.before_request
 def handle_ingress():
     """Handle Home Assistant Ingress path prefix and log requests"""
-    # Log request
+    # Log request (no flush to avoid JSON corruption)
     logger.info(f">>> REQUEST: {request.method} {request.path}")
-    sys.stdout.flush()
     
     # Handle Ingress path
     ingress_path = request.headers.get('X-Ingress-Path', '')
@@ -120,14 +119,14 @@ class ShellyDataCollector:
                     # Try to convert to float
                     try:
                         value = float(value)
-                        logger.info(f"  ✓ {friendly_name}: {value}")
+                        logger.info(f"  [OK] {friendly_name}: {value}")
                     except:
                         value = 0.0
-                        logger.warning(f"  ⚠ {friendly_name}: Cannot convert to float, using 0.0")
+                        logger.warning(f"  [WARN] {friendly_name}: Cannot convert to float, using 0.0")
                     
                     raw_data[friendly_name] = value
                 else:
-                    logger.error(f"  ✗ Failed to get data from {entity_id}")
+                    logger.error(f"  [FAIL] Failed to get data from {entity_id}")
             
             # Map Shelly data to standard column names expected by report generator
             # Potenza = Active Power (W), Potenza apparente = Apparent Power (VA)
@@ -169,12 +168,12 @@ class ShellyDataCollector:
                 writer.writerow(data_row)
             
             logger.info("=" * 60)
-            logger.info(f"✓ Data collected successfully: {len(raw_data)} entities → {len(data_row)-1} standard columns saved to {self.csv_file}")
+            logger.info(f"[SUCCESS] Data collected successfully: {len(raw_data)} entities -> {len(data_row)-1} standard columns saved to {self.csv_file}")
             logger.info("=" * 60)
             
         except Exception as e:
             logger.error("=" * 60)
-            logger.error(f"✗ Error collecting data: {e}", exc_info=True)
+            logger.error(f"[ERROR] Error collecting data: {e}", exc_info=True)
             logger.error("=" * 60)
     
     def start_collection(self):
@@ -221,14 +220,14 @@ def start_background_collection():
         collection_thread = threading.Thread(target=collector.start_collection, daemon=True)
         collection_thread.start()
         logger.info("=" * 60)
-        logger.info("✓ Background data collection thread started successfully")
+        logger.info("[SUCCESS] Background data collection thread started successfully")
         logger.info("=" * 60)
     else:
         logger.warning("=" * 60)
         if not auto_export:
-            logger.warning("⚠ Auto-collection is DISABLED in configuration")
+            logger.warning("[WARN] Auto-collection is DISABLED in configuration")
         else:
-            logger.warning("⚠ No Shelly entities found - collection cannot start")
+            logger.warning("[WARN] No Shelly entities found - collection cannot start")
         logger.warning("=" * 60)
 
 
@@ -243,7 +242,7 @@ def discover_shelly_entities():
         response = requests.get(url, headers=HEADERS, timeout=10)
         
         if response.status_code != 200:
-            logger.error(f"✗ Failed to get states from HA API: {response.status_code}")
+            logger.error(f"[FAIL] Failed to get states from HA API: {response.status_code}")
             return []
         
         all_states = response.json()
@@ -254,16 +253,16 @@ def discover_shelly_entities():
             entity_id = state.get('entity_id', '')
             if 'shelly' in entity_id.lower() and any(x in entity_id for x in ['power', 'energy']):
                 shelly_entities.append(entity_id)
-                logger.info(f"  ✓ Found: {entity_id}")
+                logger.info(f"  [OK] Found: {entity_id}")
         
         logger.info("=" * 60)
-        logger.info(f"✓ Discovery complete: {len(shelly_entities)} Shelly entities found")
+        logger.info(f"[SUCCESS] Discovery complete: {len(shelly_entities)} Shelly entities found")
         logger.info("=" * 60)
         return shelly_entities
         
     except Exception as e:
         logger.error("=" * 60)
-        logger.error(f"✗ Error discovering Shelly entities: {e}")
+        logger.error(f"[ERROR] Error discovering Shelly entities: {e}")
         logger.error("=" * 60)
         return []
 
@@ -570,7 +569,15 @@ def home():
             }
             
             function downloadReport() {
-                window.location.href = '/download/latest';
+                // For Ingress compatibility, open in same window
+                const downloadUrl = '/download/latest';
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = 'energy_report.pdf';
+                link.target = '_self';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
         </script>
     </body>
@@ -612,7 +619,7 @@ def collect_data():
         collector.collect_and_save()
         
         logger.info("=" * 60)
-        logger.info("✓ MANUAL COLLECTION COMPLETED SUCCESSFULLY")
+        logger.info("[SUCCESS] MANUAL COLLECTION COMPLETED SUCCESSFULLY")
         logger.info("=" * 60)
         
         return jsonify({
@@ -625,7 +632,7 @@ def collect_data():
         
     except Exception as e:
         logger.error("=" * 60)
-        logger.error(f"✗ ERROR IN MANUAL COLLECTION: {e}", exc_info=True)
+        logger.error(f"[ERROR] ERROR IN MANUAL COLLECTION: {e}", exc_info=True)
         logger.error("=" * 60)
         return jsonify({
             'status': 'error',
@@ -688,7 +695,7 @@ def generate_report():
             
             file_size = final_pdf_file.stat().st_size
             logger.info("=" * 60)
-            logger.info(f"✓ PDF GENERATED SUCCESSFULLY: {final_pdf_file}")
+            logger.info(f"[SUCCESS] PDF GENERATED SUCCESSFULLY: {final_pdf_file}")
             logger.info(f"  File size: {round(file_size / 1024, 2)} KB")
             logger.info("=" * 60)
             
@@ -710,7 +717,7 @@ def generate_report():
             
     except Exception as e:
         logger.error("=" * 60)
-        logger.error(f"✗ ERROR GENERATING REPORT: {e}", exc_info=True)
+        logger.error(f"[ERROR] ERROR GENERATING REPORT: {e}", exc_info=True)
         logger.error("=" * 60)
         return jsonify({
             'status': 'error',
@@ -744,7 +751,7 @@ def download_latest():
         file_date = datetime.fromtimestamp(file_stat.st_mtime)
         file_size = file_stat.st_size
         
-        logger.info(f"✓ Serving PDF: {pdf_file}")
+        logger.info(f"[SUCCESS] Serving PDF: {pdf_file}")
         logger.info(f"  Size: {round(file_size / 1024, 2)} KB")
         logger.info(f"  Modified: {file_date}")
         logger.info("=" * 60)
@@ -758,7 +765,7 @@ def download_latest():
         
     except Exception as e:
         logger.error("=" * 60)
-        logger.error(f"✗ ERROR SERVING PDF: {e}", exc_info=True)
+        logger.error(f"[ERROR] ERROR SERVING PDF: {e}", exc_info=True)
         logger.error("=" * 60)
         return jsonify({
             'status': 'error',

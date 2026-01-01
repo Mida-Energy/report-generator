@@ -98,15 +98,15 @@ case $COMMAND in
         fi
         
         # Aggiorna pip
-        echo "⬆️  Aggiornamento pip..."
+        echo "Aggiornamento pip..."
         python -m pip install --upgrade pip
         
         # Installa dipendenze
-        echo "📦 Installazione dipendenze..."
+        echo "Installazione dipendenze..."
         
         # Prima controlla se requirements.txt esiste
         if [ ! -f "requirements.txt" ]; then
-            echo "⚠️  File requirements.txt non trovato"
+            echo "[WARN] File requirements.txt non trovato"
             echo "Creazione requirements.txt di base..."
             cat > requirements.txt << EOF
 # Requirements base per Shelly Energy Report Generator
@@ -124,8 +124,8 @@ EOF
         pip install -r requirements.txt
         
         # Verifica installazione
-        echo "🔍 Verifica installazione..."
-        python -c "import pandas, numpy, matplotlib, reportlab; print('✅ Tutte le dipendenze installate correttamente')"
+        echo "Verifica installazione..."
+        python -c "import pandas, numpy, matplotlib, reportlab; print('[OK] Tutte le dipendenze installate correttamente')"
         
         # Crea file di esempio se la cartella data è vuota
         if [ -z "$(ls -A data 2>/dev/null)" ]; then
@@ -239,10 +239,10 @@ EOF
             source venv/bin/activate
         fi
         
-        echo "⬆️  Aggiornamento pip..."
+        echo "Aggiornamento pip..."
         python -m pip install --upgrade pip
         
-        echo "📦 Aggiornamento pacchetti..."
+        echo "Aggiornamento pacchetti..."
         
         if [ -f "requirements.txt" ]; then
             echo "Aggiornamento da requirements.txt..."
@@ -252,14 +252,14 @@ EOF
             pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1 | xargs -n1 pip install -U
         fi
         
-        echo "📝 Generazione nuovo requirements.txt..."
+        echo "Generazione nuovo requirements.txt..."
         pip freeze > requirements.txt
         
-        echo "✅ Aggiornamento completato"
+        echo "[OK] Aggiornamento completato"
         ;;
     
     *)
-        echo "❌ Comando non valido: $COMMAND"
+        echo "[ERROR] Comando non valido: $COMMAND"
         echo "Usage: $0 {setup|run|clean|update}"
         exit 1
         ;;

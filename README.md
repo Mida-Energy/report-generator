@@ -16,10 +16,10 @@ Generate professional PDF energy reports from your Shelly EM data directly in Ho
 
 ### Step 1: Add Repository to Home Assistant
 
-1. Go to **Settings** → **Add-ons** → **Add-on Store**
-2. Click **⋮** (top right) → **Repositories**
+1. Go to **Settings** > **Add-ons** > **Add-on Store**
+2. Click **Menu** (top right) > **Repositories**
 3. Add: `https://github.com/Mida-Energy/energy-reports`
-4. Click **Add** → **Close**
+4. Click **Add** > **Close**
 
 ### Step 2: Install the Add-on
 
@@ -142,7 +142,7 @@ homeassistant-addon/
 
 **Check logs:**
 ```
-Add-on page → Log tab
+Add-on page > Log tab
 ```
 
 **Common issues:**
@@ -154,7 +154,7 @@ Add-on page → Log tab
 
 **Solution:**
 - Verify Shelly EM is integrated in Home Assistant
-- Check **Developer Tools** → **States** for `sensor.shelly_*`
+- Check **Developer Tools** > **States** for `sensor.shelly_*`
 - Ensure sensors have data
 
 ### PDF generation fails
