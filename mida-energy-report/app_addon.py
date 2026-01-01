@@ -405,11 +405,14 @@ def discover_shelly_entities():
         all_states = response.json()
         shelly_entities = []
         
-        # Look for Shelly energy/power sensors
+        # Look for Shelly ENERGY sensors only (not power, voltage, current, etc.)
         for state in all_states:
             entity_id = state.get('entity_id', '')
             friendly_name = state.get('attributes', {}).get('friendly_name', entity_id)
-            if 'shelly' in entity_id.lower() and any(x in entity_id for x in ['power', 'energy']):
+            # Only include energy sensors, exclude power/voltage/current/apparent
+            if ('shelly' in entity_id.lower() and 
+                'energy' in entity_id.lower() and 
+                not any(x in entity_id.lower() for x in ['power', 'voltage', 'current', 'apparent', 'reactive'])):
                 shelly_entities.append({
                     'entity_id': entity_id,
                     'friendly_name': friendly_name
@@ -591,6 +594,7 @@ def home():
                 display: inline-block;
                 vertical-align: middle;
                 margin-left: 8px;
+                flex-shrink: 0;
             }
             @keyframes spin { 
                 0% { transform: rotate(0deg); } 
@@ -746,7 +750,7 @@ def home():
                 const btn = event.target;
                 const originalHTML = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-icons">hourglass_empty</span>Processing...<span class="spinner"></span>';
+                btn.innerHTML = '<span class="material-icons" style="margin-right: 8px;">hourglass_empty</span><span>Processing...</span><span class="spinner"></span>';
                 showStatus('Fetching historical data from Home Assistant (last 7 days)...', 'info');
                 
                 fetch('collect-data', { method: 'POST' })
@@ -771,7 +775,7 @@ def home():
                 const btn = event.target;
                 const originalHTML = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<span class="material-icons">hourglass_empty</span>Generating...<span class="spinner"></span>';
+                btn.innerHTML = '<span class="material-icons" style="margin-right: 8px;">hourglass_empty</span><span>Generating...</span><span class="spinner"></span>';
                 showStatus('Generating PDF report... Please wait.', 'info');
                 
                 fetch('generate', { method: 'POST' })
@@ -1030,7 +1034,7 @@ def collect_data():
             'message': 'Data collected successfully from Home Assistant history',
             'entities_count': len(entity_ids),
             'entities': entity_ids,
-            'csv_file': str(collector.csv_file)
+            'csv_file': str(csv_file)
         })
         
     except Exception as e:
