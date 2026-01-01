@@ -396,18 +396,16 @@ def discover_shelly_entities():
         all_states = response.json()
         shelly_entities = []
         
-        # Look for Shelly energy sensors based on device_class or unit_of_measurement
-        # This is more reliable than filtering by name
+        # Look for Shelly sensors with "energy" in entity_id or friendly_name
+        # We'll show all potential energy-related sensors and let user select
         for state in all_states:
             entity_id = state.get('entity_id', '')
             attributes = state.get('attributes', {})
             friendly_name = attributes.get('friendly_name', entity_id)
-            device_class = attributes.get('device_class', '')
-            unit = attributes.get('unit_of_measurement', '')
             
-            # Include only Shelly sensors with energy device_class or kWh/Wh units
+            # Include Shelly sensors that have "energy" in their ID or name
             if 'shelly' in entity_id.lower():
-                if device_class == 'energy' or unit in ['kWh', 'Wh', 'MWh']:
+                if 'energy' in entity_id.lower() or 'energy' in friendly_name.lower():
                     shelly_entities.append({
                         'entity_id': entity_id,
                         'friendly_name': friendly_name
