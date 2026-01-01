@@ -696,10 +696,6 @@ def home():
                         <span class="spinner"></span> Loading devices...
                     </div>
                 </div>
-                <button class="btn" onclick="saveDeviceSelection()" style="margin-top: 16px; width: 100%;">
-                    <span class="material-icons">save</span>
-                    Save Selection
-                </button>
             </div>
 
             <div class="card">
@@ -927,14 +923,13 @@ def home():
                     selectedEntities.push(entityId);
                 }
                 renderDeviceList();
+                
+                // Auto-save selection
+                saveDeviceSelection();
             }
             
             function saveDeviceSelection() {
-                if (selectedEntities.length === 0) {
-                    showStatus('<strong>Warning:</strong> Please select at least one device for reports', 'error');
-                    return;
-                }
-                
+                // Allow empty selection (will be validated on collect/generate)
                 fetch('api/entities/select', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

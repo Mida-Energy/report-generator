@@ -21,21 +21,21 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 warnings.filterwarnings('ignore')
 
-# Configurazione stile grafici
+# Chart style configuration
 plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
 class PDFReportGenerator:
-    """Generatore di report PDF professionali."""
+    """Professional PDF report generator."""
     
     def __init__(self):
         self.styles = getSampleStyleSheet()
         self._create_custom_styles()
     
     def _create_custom_styles(self):
-        """Crea stili personalizzati per il report."""
-        # Crea nuovi nomi di stili invece di sovrascrivere quelli esistenti
-        # Titolo principale
+        """Create custom styles for the report."""
+        # Create new style names instead of overwriting existing ones
+        # Main title
         if 'MainTitle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='MainTitle',
@@ -47,7 +47,7 @@ class PDFReportGenerator:
                 fontName='Helvetica-Bold'
             ))
         
-        # Titolo sezione
+        # Section title
         if 'SectionTitle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='SectionTitle',
@@ -64,7 +64,7 @@ class PDFReportGenerator:
                 backgroundColor=colors.HexColor('#ecf0f1')
             ))
         
-        # Sottotitolo
+        # Subtitle
         if 'SubTitle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='SubTitle',
@@ -75,7 +75,7 @@ class PDFReportGenerator:
                 textColor=colors.HexColor('#34495e')
             ))
         
-        # Testo evidenziato (custom - non esiste nel default)
+        # Highlighted text (custom - doesn't exist in default)
         if 'HighlightText' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='HighlightText',
@@ -89,7 +89,7 @@ class PDFReportGenerator:
                 borderWidth=1
             ))
         
-        # Intestazione tabella (custom)
+        # Table header (custom)
         if 'TableHeaderStyle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='TableHeaderStyle',
@@ -100,7 +100,7 @@ class PDFReportGenerator:
                 fontName='Helvetica-Bold'
             ))
         
-        # Testo tabella (custom)
+        # Table text (custom)
         if 'TableTextStyle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='TableTextStyle',
@@ -109,7 +109,7 @@ class PDFReportGenerator:
                 alignment=TA_CENTER
             ))
         
-        # Copertina titolo
+        # Cover title
         if 'CoverTitle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='CoverTitle',
@@ -121,7 +121,7 @@ class PDFReportGenerator:
                 fontName='Helvetica-Bold'
             ))
         
-        # Copertina sottotitolo
+        # Cover subtitle
         if 'CoverSubtitle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='CoverSubtitle',
@@ -132,7 +132,7 @@ class PDFReportGenerator:
                 textColor=colors.HexColor('#7f8c8d')
             ))
         
-        # Linea separatrice
+        # Separator line
         if 'LineStyle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='LineStyle',
@@ -143,7 +143,7 @@ class PDFReportGenerator:
                 textColor=colors.grey
             ))
         
-        # Piè di pagina
+        # Footer
         if 'FooterStyle' not in self.styles:
             self.styles.add(ParagraphStyle(
                 name='FooterStyle',
@@ -156,10 +156,10 @@ class PDFReportGenerator:
     
     def create_daily_pdf(self, analysis: Dict, date: datetime.date, output_path: Path, 
                          plot_paths: List[Path], day_data: pd.DataFrame):
-        """Crea PDF del report giornaliero."""
+        """Create daily report PDF."""
         pdf_path = output_path / f"report_giornaliero_{date.strftime('%Y%m%d')}.pdf"
         
-        # Crea documento PDF
+        # Create PDF document
         doc = SimpleDocTemplate(
             str(pdf_path),
             pagesize=A4,
@@ -171,16 +171,16 @@ class PDFReportGenerator:
         
         story = []
         
-        # Intestazione
+        # Header
         story.append(Paragraph(f"REPORT GIORNALIERO CONSUMI ENERGIA", self.styles['MainTitle']))
         story.append(Paragraph(f"Data: {date.strftime('%d/%m/%Y')}", self.styles['SubTitle']))
         story.append(Paragraph(f"Generato il: {datetime.now().strftime('%d/%m/%Y %H:%M')}", self.styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # Scheda riassuntiva
+        # Summary card
         story.append(Paragraph("SCHEDA RIASSUNTIVA", self.styles['SectionTitle']))
         
-        # Crea tabella riassuntiva
+        # Create summary table
         summary_data = [
             ["Metrica", "Valore", "Unità"],
             ["Energia totale", f"{analysis.get('total_energy_kwh', 0):.2f}", "kWh"],
@@ -208,10 +208,10 @@ class PDFReportGenerator:
         story.append(summary_table)
         story.append(Spacer(1, 20))
         
-        # Sezione grafici
+        # Charts section
         story.append(Paragraph("GRAFICI ANALISI", self.styles['SectionTitle']))
         
-        # Aggiungi grafici
+        # Add charts
         for plot_path in plot_paths:
             if plot_path.exists():
                 story.append(Paragraph(f"Grafico: {plot_path.stem}", self.styles['SubTitle']))
@@ -222,7 +222,7 @@ class PDFReportGenerator:
                 except Exception as e:
                     story.append(Paragraph(f"Errore nel caricamento del grafico: {str(e)}", self.styles['Normal']))
         
-        # Analisi oraria dettagliata
+        # Detailed hourly analysis
         story.append(Paragraph("🕒 ANALISI ORARIA DETTAGLIATA", self.styles['SectionTitle']))
         
         if 'hourly_stats' in analysis:
@@ -267,7 +267,7 @@ class PDFReportGenerator:
         
         story.append(Spacer(1, 20))
         
-        # Raccomandazioni
+        # Recommendations
         story.append(Paragraph("RACCOMANDAZIONI E SUGGERIMENTI", self.styles['SectionTitle']))
         
         recommendations = []
@@ -289,7 +289,7 @@ class PDFReportGenerator:
         
         story.append(Spacer(1, 15))
         
-        # Piè di pagina
+        # Footer
         story.append(Paragraph("_" * 80, self.styles['LineStyle']))
         story.append(Spacer(1, 5))
         story.append(Paragraph("Report generato automaticamente da Shelly Energy Analyzer", 
@@ -298,27 +298,27 @@ class PDFReportGenerator:
         # Genera PDF
         try:
             doc.build(story)
-            print(f"    📄 PDF creato: {pdf_path.name}")
+            print(f"[INFO] PDF created: {pdf_path.name}")
             return pdf_path
         except Exception as e:
-            print(f"    ❌ Errore nella creazione del PDF: {e}")
+            print(f"[ERROR] Error creating PDF: {e}")
             return None
     
     def create_general_pdf(self, analysis: Dict, output_path: Path, plot_paths: List[Path], 
                           all_data: pd.DataFrame, data_files: List[Path]):
-        """Crea PDF del report generale - SOVRASCRIVE SEMPRE LO STESSO FILE."""
-        # Nome fisso per il report generale (sovrascrive ogni volta)
+        """Create general report PDF - ALWAYS OVERWRITES THE SAME FILE."""
+        # Fixed name for general report (overwrites each time)
         pdf_path = output_path / "report_generale.pdf"
         
-        # Se esiste già un file con questo nome, lo rimuoviamo
+        # If a file with this name already exists, remove it
         if pdf_path.exists():
             try:
                 pdf_path.unlink()
-                print(f"    📄 Rimossa versione precedente del report generale")
+                print(f"[INFO] Removed previous version of general report")
             except Exception as e:
-                print(f"    ⚠️  Non è stato possibile rimuovere il file precedente: {e}")
+                print(f"[WARN] Could not remove previous file: {e}")
         
-        # Crea documento PDF
+        # Create PDF document
         doc = SimpleDocTemplate(
             str(pdf_path),
             pagesize=A4,
@@ -330,7 +330,7 @@ class PDFReportGenerator:
         
         story = []
         
-        # Copertina
+        # Cover page
         story.append(Spacer(1, 2*inch))
         story.append(Paragraph("REPORT GENERALE ANALISI CONSUMI", 
                               self.styles['CoverTitle']))
@@ -348,7 +348,7 @@ class PDFReportGenerator:
                               self.styles['FooterStyle']))
         story.append(PageBreak())
         
-        # Indice
+        # Table of contents
         story.append(Paragraph("📑 INDICE DEL REPORT", self.styles['SectionTitle']))
         story.append(Spacer(1, 10))
         
@@ -366,11 +366,11 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
-        # 1. Sintesi generale
+        # 1. General summary
         story.append(Paragraph("1. SINTESI GENERALE E METRICHE PRINCIPALI", self.styles['SectionTitle']))
         story.append(Spacer(1, 10))
         
-        # Tabella metriche principali
+        # Main metrics table
         metrics_data = [
             ["METRICA", "VALORE", "NOTE"],
             ["Energia totale", f"{analysis.get('total_energy_kwh', 0):.2f} kWh", "Consumo complessivo"],
@@ -397,7 +397,7 @@ class PDFReportGenerator:
         story.append(metrics_table)
         story.append(Spacer(1, 20))
         
-        # Statistiche giornaliere
+        # Daily statistics
         if 'daily_energy_stats' in analysis:
             story.append(Paragraph("Statistiche Giornaliere", self.styles['SubTitle']))
             
@@ -426,7 +426,7 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
-        # 2. Analisi per giorno
+        # 2. Daily analysis
         story.append(Paragraph("2. ANALISI DETTAGLIATA PER GIORNO", self.styles['SectionTitle']))
         
         if 'date' in all_data.columns:
@@ -441,7 +441,7 @@ class PDFReportGenerator:
             daily_summary.columns = ['energia_kwh', 'potenza_max', 'potenza_media', 'tensione_media', 'corrente_media']
             daily_summary['energia_kwh'] = daily_summary['energia_kwh'] / 1000
             
-            # Crea tabella riassuntiva giorni
+            # Create daily summary table
             story.append(Paragraph("Riepilogo Consumi Giornalieri", self.styles['SubTitle']))
             
             table_data = [["Data", "Energia (kWh)", "P.Max (W)", "P.Media (W)", "Tensione (V)"]]
@@ -483,10 +483,10 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
-        # 3. Grafici di sintesi
+        # 3. Summary charts
         story.append(Paragraph("3. GRAFICI DI SINTESI", self.styles['SectionTitle']))
         
-        # Aggiungi grafici
+        # Add charts
         for plot_path in plot_paths:
             if plot_path.exists():
                 story.append(Paragraph(plot_path.stem.replace('_', ' ').title(), self.styles['SubTitle']))
@@ -499,10 +499,10 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
-        # 4. Raccomandazioni e piano di azione
+        # 4. Recommendations and action plan
         story.append(Paragraph("4. RACCOMANDAZIONI E PIANO DI AZIONE", self.styles['SectionTitle']))
         
-        # Analisi trend
+        # Trend analysis
         story.append(Paragraph("Analisi dei Trend", self.styles['SubTitle']))
         
         trend_analysis = [
@@ -519,7 +519,7 @@ class PDFReportGenerator:
         
         story.append(Spacer(1, 15))
         
-        # Piano di azione
+        # Action plan
         story.append(Paragraph("Piano di Azione Raccomandato", self.styles['SubTitle']))
         
         action_plan = [
@@ -546,7 +546,7 @@ class PDFReportGenerator:
         story.append(action_table)
         story.append(Spacer(1, 20))
         
-        # Stima risparmi
+        # Savings estimate
         story.append(Paragraph("Stima Risparmi Potenziali", self.styles['SubTitle']))
         
         savings_text = """
@@ -561,10 +561,10 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
-        # 5. Appendice tecnica
+        # 5. Technical appendix
         story.append(Paragraph("5. APPENDICE TECNICA", self.styles['SectionTitle']))
         
-        # Informazioni tecniche
+        # Technical information
         story.append(Paragraph("Informazioni Tecniche", self.styles['SubTitle']))
         
         tech_info = [
@@ -590,7 +590,7 @@ class PDFReportGenerator:
         story.append(tech_table)
         story.append(Spacer(1, 20))
         
-        # Note finali
+        # Final notes
         story.append(Paragraph("Note Finali e Disclaimer", self.styles['SubTitle']))
         
         disclaimer = """
@@ -605,20 +605,20 @@ class PDFReportGenerator:
         
         story.append(Paragraph(disclaimer, self.styles['Normal']))
         
-        # Piè di pagina finale
+        # Final footer
         story.append(Spacer(1, 20))
         story.append(Paragraph("_" * 80, self.styles['LineStyle']))
         story.append(Spacer(1, 5))
         story.append(Paragraph("© 2024 Shelly Energy Analyzer - Report Generale Completo", 
                               self.styles['FooterStyle']))
         
-        # Genera PDF
+        # PDF Generation
         try:
             doc.build(story)
-            print(f"📄 PDF generale creato/aggiornato: {pdf_path.name}")
+            print(f"[INFO] General PDF created/updated: {pdf_path.name}")
             return pdf_path
         except Exception as e:
-            print(f"❌ Errore nella creazione del PDF generale: {e}")
+            print(f"[ERROR] Error creating general PDF: {e}")
             return None
 
 
@@ -631,7 +631,7 @@ class ShellyEnergyReport:
         correct_timestamps: bool = True
     ):
         """
-        Analizzatore dati Shelly EM con report PDF.
+        Shelly EM data analyzer with PDF reports.
         """
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
@@ -642,7 +642,7 @@ class ShellyEnergyReport:
         self.pdf_generator = PDFReportGenerator()
         
     def _find_data_files(self):
-        """Trova tutti i file CSV nella cartella data."""
+        """Find all CSV files in the data folder."""
         csv_files = list(self.data_dir.glob("*.csv"))
         csv_files.extend(list(self.data_dir.glob("emdata_*.csv")))
         
@@ -650,15 +650,15 @@ class ShellyEnergyReport:
             raise FileNotFoundError(f"Nessun file CSV trovato in {self.data_dir}")
         
         self.data_files = sorted(csv_files)
-        print(f"Trovati {len(self.data_files)} file CSV:")
+        print(f"[INFO] Found {len(self.data_files)} CSV files:")
         for f in self.data_files:
             print(f"  - {f.name}")
         
         return self.data_files
     
     def _load_and_correct_csv(self, file_path: Path) -> pd.DataFrame:
-        """Carica e corregge un file CSV."""
-        print(f"  Caricando: {file_path.name}")
+        """Load and correct a CSV file."""
+        print(f"[INFO] Loading: {file_path.name}")
         
         try:
             df = pd.read_csv(file_path, encoding=self.encoding)
@@ -667,7 +667,7 @@ class ShellyEnergyReport:
                 try:
                     df = pd.read_csv(file_path, encoding=enc)
                     self.encoding = enc
-                    print(f"    - Encoding rilevato: {enc}")
+                    print(f"    - Encoding detected: {enc}")
                     break
                 except:
                     continue
@@ -677,13 +677,13 @@ class ShellyEnergyReport:
         df['source_file'] = file_path.name
         
         if 'timestamp' not in df.columns:
-            print(f"    [WARN] Nessuna colonna 'timestamp' trovata")
+            print(f"    [WARN] No 'timestamp' column found")
             df['timestamp'] = int(datetime.now().timestamp()) + df.index * 60
         
         return df
     
     def _correct_timestamps_in_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Corregge i timestamp errati."""
+        """Correct erroneous timestamps."""
         if not self.correct_timestamps or 'timestamp' not in df.columns:
             return df
         
@@ -693,7 +693,7 @@ class ShellyEnergyReport:
         time_diff = current_time - latest_timestamp_raw
         
         if abs(time_diff.days) > 30:
-            print(f"    [INFO] Correzione timestamp: {abs(time_diff.days)} giorni di differenza")
+            print(f"    [INFO] Timestamp correction: {abs(time_diff.days)} days difference")
             correction_seconds = time_diff.total_seconds()
             df['timestamp_corrected'] = df['timestamp'] + correction_seconds
             df['datetime'] = pd.to_datetime(df['timestamp_corrected'], unit='s')
@@ -703,7 +703,7 @@ class ShellyEnergyReport:
         return df
     
     def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Prepara il DataFrame con metriche aggiuntive."""
+        """Prepare the DataFrame with additional metrics."""
         if df is None or len(df) == 0:
             return df
         
@@ -731,8 +731,8 @@ class ShellyEnergyReport:
         return df
     
     def load_all_data(self) -> pd.DataFrame:
-        """Carica e combina tutti i dati."""
-        print("\n📚 Caricamento e combinazione di tutti i dati...")
+        """Load and combine all data."""
+        print("\n[INFO] Loading and combining all data...")
         
         self._find_data_files()
         
@@ -743,28 +743,28 @@ class ShellyEnergyReport:
                 df = self._correct_timestamps_in_data(df)
                 df = self._prepare_dataframe(df)
                 all_dfs.append(df)
-                print(f"    ✅ {file_path.name}: {len(df)} righe")
+                print(f"[INFO] {file_path.name}: {len(df)} rows")
             except Exception as e:
-                print(f"    ❌ Errore in {file_path.name}: {e}")
+                print(f"[ERROR] Error in {file_path.name}: {e}")
                 continue
         
         if not all_dfs:
-            raise ValueError("Nessun dato valido trovato")
+            raise ValueError("No valid data found")
         
         self.all_data = pd.concat(all_dfs, ignore_index=True, sort=False)
         
         if 'datetime' in self.all_data.columns:
             self.all_data = self.all_data.sort_values('datetime')
         
-        print(f"\n✅ Dati combinati: {len(self.all_data)} righe totali")
+        print(f"\n[INFO] Combined data: {len(self.all_data)} total rows")
         if 'datetime' in self.all_data.columns:
-            print(f"📅 Periodo: {self.all_data['datetime'].min()} - {self.all_data['datetime'].max()}")
-            print(f"📆 Giorni unici: {self.all_data['date'].nunique()}")
+            print(f"[INFO] Period: {self.all_data['datetime'].min()} - {self.all_data['datetime'].max()}")
+            print(f"[INFO] Unique days: {self.all_data['date'].nunique()}")
         
         return self.all_data
     
     def _create_output_structure(self):
-        """Crea la struttura delle cartelle di output."""
+        """Create the output folder structure."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.daily_reports_dir = self.output_dir / "giornalieri"
         self.general_report_dir = self.output_dir / "generale"
@@ -772,12 +772,12 @@ class ShellyEnergyReport:
         self.daily_reports_dir.mkdir(exist_ok=True)
         self.general_report_dir.mkdir(exist_ok=True)
         
-        print(f"\n📁 Struttura output creata:")
-        print(f"  • Report giornalieri: {self.daily_reports_dir}")
-        print(f"  • Report generale: {self.general_report_dir}")
+        print(f"\n[INFO] Output structure created:")
+        print(f"  - Daily reports: {self.daily_reports_dir}")
+        print(f"  - General report: {self.general_report_dir}")
     
     def _analyze_daily_data(self, date: datetime.date) -> Dict:
-        """Analizza i dati di un singolo giorno."""
+        """Analyze data for a single day."""
         day_data = self.all_data[self.all_data['date'] == date]
         
         if len(day_data) == 0:
@@ -807,13 +807,13 @@ class ShellyEnergyReport:
         return analysis
     
     def _create_daily_plots(self, day_data: pd.DataFrame, date: datetime.date, output_dir: Path) -> List[Path]:
-        """Crea grafici per un singolo giorno e restituisce i percorsi."""
+        """Create charts for a single day and return the paths."""
         plot_paths = []
         
         if len(day_data) == 0:
             return plot_paths
         
-        # 1. Andamento potenza
+        # 1. Power trend
         fig1, ax1 = plt.subplots(figsize=(12, 6))
         if 'datetime' in day_data.columns and 'max_act_power' in day_data.columns:
             ax1.plot(day_data['datetime'], day_data['max_act_power'], 'b-', linewidth=1.5, alpha=0.8)
@@ -828,7 +828,7 @@ class ShellyEnergyReport:
             plot_paths.append(plot_path)
             plt.close()
         
-        # 2. Profilo orario
+        # 2. Hourly profile
         fig2, ax2 = plt.subplots(figsize=(10, 6))
         if 'hour' in day_data.columns and 'max_act_power' in day_data.columns:
             hourly_avg = day_data.groupby('hour')['max_act_power'].mean()
@@ -844,7 +844,7 @@ class ShellyEnergyReport:
             plot_paths.append(plot_path)
             plt.close()
         
-        # 3. Distribuzione potenza
+        # 3. Power distribution
         fig3, ax3 = plt.subplots(figsize=(10, 6))
         if 'max_act_power' in day_data.columns:
             ax3.hist(day_data['max_act_power'], bins=30, edgecolor='black', alpha=0.7, color='steelblue')
@@ -864,7 +864,7 @@ class ShellyEnergyReport:
         return plot_paths
     
     def _create_daily_report(self, date: datetime.date, analysis: Dict, day_data: pd.DataFrame):
-        """Crea report completo per un singolo giorno."""
+        """Create complete report for a single day."""
         date_dir = self.daily_reports_dir / date.strftime("%Y-%m-%d")
         date_dir.mkdir(exist_ok=True)
         
@@ -873,38 +873,38 @@ class ShellyEnergyReport:
         grafici_dir.mkdir(exist_ok=True)
         dati_dir.mkdir(exist_ok=True)
         
-        print(f"  📊 Creando report per {date.strftime('%d/%m/%Y')}...")
+        print(f"[INFO] Creating report for {date.strftime('%d/%m/%Y')}...")
         
-        # Salva dati
+        # Save data
         day_data.to_csv(dati_dir / "dati_giornalieri.csv", index=False)
         
-        # Crea grafici
+        # Create charts
         plot_paths = self._create_daily_plots(day_data, date, grafici_dir)
         
-        # Salva statistiche JSON
+        # Save JSON statistics
         with open(dati_dir / "statistiche.json", 'w', encoding='utf-8') as f:
             json.dump(analysis, f, indent=2, default=str)
         
-        # Crea PDF
+        # Create PDF
         pdf_path = self.pdf_generator.create_daily_pdf(analysis, date, date_dir, plot_paths, day_data)
         
         if pdf_path:
-            # Crea anche una versione testuale per riferimento
+            # Also create a text version for reference
             with open(date_dir / "riepilogo.txt", 'w', encoding='utf-8') as f:
                 f.write(f"Report Giornaliero - {date.strftime('%d/%m/%Y')}\n")
                 f.write(f"Energia totale: {analysis.get('total_energy_kwh', 0):.2f} kWh\n")
                 f.write(f"Potenza massima: {analysis.get('max_power_w', 0):.1f} W\n")
                 f.write(f"PDF disponibile: {pdf_path.name}\n")
             
-            print(f"    ✅ Report PDF creato: {pdf_path.name}")
+            print(f"[INFO] PDF report created: {pdf_path.name}")
         else:
-            print(f"    ⚠️  Report PDF non creato per {date.strftime('%d/%m/%Y')}")
+            print(f"[WARN] PDF report not created for {date.strftime('%d/%m/%Y')}")
     
     def _create_general_plots(self, plots_dir: Path) -> List[Path]:
-        """Crea grafici per il report generale."""
+        """Create charts for the general report."""
         plot_paths = []
         
-        # 1. Energia giornaliera
+        # 1. Daily energy
         if 'date' in self.all_data.columns and 'total_act_energy' in self.all_data.columns:
             fig1, ax1 = plt.subplots(figsize=(14, 7))
             daily_energy = self.all_data.groupby('date')['total_act_energy'].sum() / 1000
@@ -921,7 +921,7 @@ class ShellyEnergyReport:
             plot_paths.append(plot_path)
             plt.close()
         
-        # 2. Heatmap consumi
+        # 2. Consumption heatmap
         if all(col in self.all_data.columns for col in ['date', 'hour', 'max_act_power']):
             fig2, ax2 = plt.subplots(figsize=(12, 8))
             
@@ -942,7 +942,7 @@ class ShellyEnergyReport:
             plot_paths.append(plot_path)
             plt.close()
         
-        # 3. Distribuzione potenze
+        # 3. Power distribution
         if 'max_act_power' in self.all_data.columns:
             fig3, ax3 = plt.subplots(figsize=(10, 6))
             ax3.hist(self.all_data['max_act_power'], bins=50, edgecolor='black', alpha=0.7, color='steelblue')
@@ -962,7 +962,7 @@ class ShellyEnergyReport:
         return plot_paths
     
     def _analyze_general_data(self) -> Dict:
-        """Analizza tutti i dati combinati."""
+        """Analyze all combined data."""
         analysis = {
             'total_energy_kwh': self.all_data['total_act_energy'].sum() / 1000 if 'total_act_energy' in self.all_data.columns else 0,
             'avg_power_w': self.all_data['max_act_power'].mean() if 'max_act_power' in self.all_data.columns else 0,
@@ -998,11 +998,11 @@ class ShellyEnergyReport:
         return analysis
     
     def _create_general_report(self):
-        """Crea report generale - SEMPRE AGGIORNATO."""
-        print("\n📈 CREAZIONE/AGGIORNAMENTO REPORT GENERALE")
+        """Create general report - ALWAYS UPDATED."""
+        print("\n[INFO] CREATING/UPDATING GENERAL REPORT")
         print("=" * 40)
         
-        # Crea cartella principale per il report generale (senza timestamp)
+        # Create main folder for general report (without timestamp)
         general_dir = self.general_report_dir
         general_dir.mkdir(exist_ok=True)
         
@@ -1011,25 +1011,25 @@ class ShellyEnergyReport:
         grafici_dir.mkdir(exist_ok=True)
         dati_dir.mkdir(exist_ok=True)
         
-        # Salva dati completi
+        # Save complete data
         data_file = dati_dir / "dati_completi.csv"
         self.all_data.to_csv(data_file, index=False)
-        print(f"  💾 Dati salvati: {data_file.name}")
+        print(f"[INFO] Data saved: {data_file.name}")
         
-        # Analisi
+        # Analysis
         general_analysis = self._analyze_general_data()
         
-        # Salva statistiche
+        # Save statistics
         stats_file = dati_dir / "statistiche_generali.json"
         with open(stats_file, 'w', encoding='utf-8') as f:
             json.dump(general_analysis, f, indent=2, default=str)
-        print(f"  📊 Statistiche salvate: {stats_file.name}")
+        print(f"[INFO] Statistics saved: {stats_file.name}")
         
-        # Crea grafici (sovrascrive sempre)
+        # Create charts (always overwrite)
         plot_paths = self._create_general_plots(grafici_dir)
-        print(f"  📈 Grafici generati: {len(plot_paths)}")
+        print(f"[INFO] Charts generated: {len(plot_paths)}")
         
-        # Crea PDF (sovrascrive sempre il file esistente)
+        # Create PDF (always overwrite existing file)
         pdf_path = self.pdf_generator.create_general_pdf(
             general_analysis, 
             general_dir, 
@@ -1039,7 +1039,7 @@ class ShellyEnergyReport:
         )
         
         if pdf_path:
-            # Aggiorna riepilogo testuale
+            # Update text summary
             with open(general_dir / "riepilogo.txt", 'w', encoding='utf-8') as f:
                 f.write(f"REPORT GENERALE - AGGIORNATO AL: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
                 f.write(f"Periodo: {general_analysis.get('date_range', {}).get('start', 'N/A')} - {general_analysis.get('date_range', {}).get('end', 'N/A')}\n")
@@ -1054,9 +1054,9 @@ class ShellyEnergyReport:
                 f.write(f"- statistiche_generali.json (metriche)\n")
                 f.write(f"- grafici/ (immagini dei grafici)\n")
             
-            print(f"✅ Report generale AGGIORNATO: {pdf_path.name}")
+            print(f"[INFO] General report UPDATED: {pdf_path.name}")
         else:
-            print(f"⚠️  Report generale non creato/aggiornato")
+            print(f"[WARN] General report not created/updated")
         
         return general_dir
     
@@ -1111,7 +1111,7 @@ class ShellyEnergyReport:
         pdf_path = device_dir / f"report_{safe_device_name}.pdf"
         self._create_device_pdf(analysis, pdf_path, plot_paths, device_data)
         
-        print(f"   ✅ Report creato: {pdf_path.name}")
+        print(f"[INFO] Device report created: {pdf_path.name}")
     
     def _create_device_plots(self, device_data: pd.DataFrame, output_dir: Path, device_name: str) -> List[Path]:
         """Crea grafici per un dispositivo."""
@@ -1230,20 +1230,20 @@ class ShellyEnergyReport:
                     story.append(Spacer(1, 10))
             
             doc.build(story)
-            print(f"      PDF salvato: {pdf_path.name}")
+            print(f"[INFO] PDF saved: {pdf_path.name}")
             
         except Exception as e:
-            print(f"      ❌ Errore creazione PDF: {e}")
+            print(f"[ERROR] Error creating PDF: {e}")
     
     def run_analysis(self):
-        """Esegue l'analisi completa con report separati per dispositivo."""
+        """Execute complete analysis with separate reports per device."""
         print("=" * 60)
-        print("ANALIZZATORE CONSUMI SHELLY EM - REPORT PDF PER DISPOSITIVO")
+        print("SHELLY EM CONSUMPTION ANALYZER - PDF REPORT PER DEVICE")
         print("=" * 60)
         
         if not self.data_dir.exists():
-            print(f"❌ Cartella dati non trovata: {self.data_dir}")
-            print(f"   Crea la cartella 'data' e inserisci i file CSV")
+            print(f"[ERROR] Data folder not found: {self.data_dir}")
+            print(f"[INFO] Create 'data' folder and insert CSV files")
             return
         
         self._create_output_structure()
@@ -1251,79 +1251,68 @@ class ShellyEnergyReport:
         try:
             self.load_all_data()
         except Exception as e:
-            print(f"❌ Errore nel caricamento dati: {e}")
+            print(f"[ERROR] Error loading data: {e}")
             return
         
         # Check if we have entity_id column for per-device analysis
         if 'entity_id' not in self.all_data.columns:
-            print("⚠️  Colonna entity_id non trovata - creo report aggregato")
+            print("[WARN] entity_id column not found - creating aggregated report")
             self._create_general_report()
             return
         
         # Get unique devices
         unique_devices = self.all_data['entity_id'].unique()
-        print(f"\n📱 Dispositivi trovati: {len(unique_devices)}")
+        print(f"[INFO] Devices found: {len(unique_devices)}")
         
         for device_id in unique_devices:
             device_data = self.all_data[self.all_data['entity_id'] == device_id].copy()
             friendly_name = device_data['friendly_name'].iloc[0] if 'friendly_name' in device_data.columns and len(device_data) > 0 else device_id
             
-            print(f"\n📊 Analizzando dispositivo: {friendly_name}")
-            print(f"   Entity ID: {device_id}")
-            print(f"   Dati: {len(device_data)} righe")
+            print(f"[INFO] Analyzing device: {friendly_name}")
+            print(f"  - Entity ID: {device_id}")
+            print(f"  - Data: {len(device_data)} rows")
             
             # Create device-specific report
             self._create_device_report(device_id, friendly_name, device_data)
         
-        print(f"\n✅ Analisi completata per {len(unique_devices)} dispositivi")
+        print(f"[INFO] Analysis completed for {len(unique_devices)} devices")
         
-        # Riepilogo finale
-        print("\n" + "=" * 60)
-        print("✅ ANALISI COMPLETATA CON SUCCESSO!")
+        # Final summary
         print("=" * 60)
-        print(f"\n📋 RIEPILOGO OUTPUT GENERATI:")
-        print(f"  • File CSV elaborati: {len(self.data_files)}")
-        print(f"  • Report giornalieri PDF: {len(unique_dates)}")
-        print(f"  • Report generale PDF: 1 (sempre aggiornato)")
-        print(f"  • Dati totali analizzati: {len(self.all_data):,} righe")
-        print(f"  • Grafici generati: {len(unique_dates) * 3 + 3} file PNG")
-        print(f"\n📍 PERCORSI PRINCIPALI:")
-        print(f"  • Report giornalieri: {self.daily_reports_dir}")
-        print(f"  • Report generale: {self.general_report_dir}")
-        print(f"  • File PDF principale: {self.general_report_dir / 'report_generale.pdf'}")
-        print("\n🎯 CARATTERISTICHE REPORT PDF:")
-        print("  ✓ Copertina professionale")
-        print("  ✓ Indice automatico")
-        print("  ✓ Tabelle dati formattate")
-        print("  ✓ Grafici incorporati")
-        print("  ✓ Raccomandazioni dettagliate")
-        print("  ✓ Piano di azione")
-        print("  ✓ Appendice tecnica")
-        print("  ✓ SEMPRE AGGIORNATO (sovrascrive la versione precedente)")
+        print("ANALISI COMPLETATA CON SUCCESSO")
+        print("=" * 60)
+        print("RIEPILOGO OUTPUT GENERATI:")
+        print(f"  - File CSV elaborati: {len(self.data_files)}")
+        print(f"  - Report per dispositivo: {len(unique_devices)}")
+        print(f"  - Dati totali analizzati: {len(self.all_data):,} righe")
+        print("PERCORSI PRINCIPALI:")
+        print(f"  - Report giornalieri: {self.daily_reports_dir}")
+        print(f"  - Report generale: {self.general_report_dir}")
+        print(f"  - File output: {self.general_report_dir}")
         print("=" * 60)
 
 
 def main():
     print("=" * 60)
-    print("SHELLY ENERGY ANALYZER - REPORT PDF PROFESSIONALI")
+    print("SHELLY ENERGY ANALYZER - PROFESSIONAL PDF REPORTS")
     print("=" * 60)
     
-    print("\n🎯 Questo programma genera report PDF professionali:")
-    print("  1. Report giornalieri in reports/giornalieri/")
-    print("  2. Report generale SEMPRE AGGIORNATO in reports/generale/")
-    print("  3. Tutto in formato PDF con grafici incorporati")
-    print("  4. Correzione automatica timestamp errati")
-    print("  5. Report generale sovrascritto ad ogni esecuzione")
+    print("\n[INFO] This program generates professional PDF reports:")
+    print("  1. Daily reports in reports/giornalieri/")
+    print("  2. General report ALWAYS UPDATED in reports/generale/")
+    print("  3. Everything in PDF format with embedded charts")
+    print("  4. Automatic timestamp correction")
+    print("  5. General report overwritten on each execution")
     print("=" * 60)
     
     data_dir = Path("data")
     if not data_dir.exists():
-        print(f"\n❌ Cartella 'data' non trovata.")
-        create_folder = input("   Vuoi che crei la cartella 'data'? (s/n): ").lower()
-        if create_folder == 's':
+        print(f"\n[WARN] 'data' folder not found.")
+        create_folder = input("   Do you want to create the 'data' folder? (y/n): ").lower()
+        if create_folder == 'y':
             data_dir.mkdir(exist_ok=True)
-            print(f"   ✅ Cartella 'data' creata.")
-            print(f"   📁 Inserisci i file CSV nella cartella 'data/' e riesegui il programma.")
+            print(f"[INFO] 'data' folder created.")
+            print(f"[INFO] Insert CSV files in the 'data/' folder and run the program again.")
             return
         else:
             return
@@ -1338,19 +1327,19 @@ def main():
         analyzer.run_analysis()
         
     except Exception as e:
-        print(f"\n❌ Errore durante l'analisi: {e}")
+        print(f"\n[ERROR] Error during analysis: {e}")
         import traceback
         traceback.print_exc()
 
 
 if __name__ == "__main__":
-    # Verifica dipendenze
+    # Check dependencies
     try:
         from reportlab.lib.pagesizes import A4
-        print("✅ Tutte le dipendenze sono installate correttamente.")
+        print("[INFO] All dependencies are correctly installed.")
     except ImportError:
-        print("\n❌ REPORTLAB non installato!")
-        print("   Installa con: pip install reportlab")
+        print("\n[ERROR] REPORTLAB not installed!")
+        print("[INFO] Install with: pip install reportlab")
         exit(1)
     
     main()
