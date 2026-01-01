@@ -22,6 +22,14 @@ from main import ShellyEnergyReport
 
 app = Flask(__name__)
 
+# Ingress support for Home Assistant
+@app.before_request
+def handle_ingress():
+    """Handle Home Assistant Ingress path prefix"""
+    ingress_path = request.headers.get('X-Ingress-Path', '')
+    if ingress_path:
+        request.environ['SCRIPT_NAME'] = ingress_path
+
 # Configure logging for Gunicorn compatibility
 if __name__ != '__main__':
     # Running under Gunicorn

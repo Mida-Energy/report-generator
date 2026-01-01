@@ -43,45 +43,25 @@ Generate professional PDF energy reports from your Shelly EM data directly in Ho
 1. Go to **Info** tab
 2. Click **Start**
 3. Enable **"Start on boot"** (recommended)
-4. Click **"Open Web UI"** to test
+4. The addon will appear in the **sidebar** of Home Assistant! 📊
 
 ---
 
 ## 🎯 Usage
 
-### Access the Web Interface
+### Access the Integrated UI
 
-Click **"Open Web UI"** from the add-on page, or:
+Once installed, **Energy Reports** appears directly in your **Home Assistant sidebar**! 🎉
+
+Just click on **"Energy Reports"** in the left menu - no need to configure anything else.
+
+> **Note:** The addon integrates automatically via Home Assistant Ingress, so it's secure and doesn't expose additional ports.
+
+### Alternative: External Access
+
+If you prefer external access (not recommended):
 ```
 http://homeassistant.local:5000
-```
-
-### Add Dashboard Card
-
-Add this card to your Home Assistant dashboard for easy access:
-
-```yaml
-type: vertical-stack
-cards:
-  - type: markdown
-    content: |
-      # 📊 Mida Energy Reports
-  
-  - type: horizontal-stack
-    cards:
-      - type: button
-        name: Generate Report
-        icon: mdi:file-pdf-box
-        tap_action:
-          action: url
-          url_path: http://homeassistant.local:5000
-      
-      - type: button
-        name: Download PDF
-        icon: mdi:download
-        tap_action:
-          action: url
-          url_path: http://homeassistant.local:5000/download/latest
 ```
 
 ### Generate Your First Report
