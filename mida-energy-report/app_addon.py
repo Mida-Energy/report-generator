@@ -396,20 +396,22 @@ def discover_shelly_entities():
         all_states = response.json()
         shelly_entities = []
         
-        # Look for Shelly ENERGY sensors only (accumulated energy counters)
-        # Exclude power (potenza), power_factor (fattore), voltage, current, etc.
+        # Look for Shelly energy sensors based on device_class or unit_of_measurement
+        # This is more reliable than filtering by name
         for state in all_states:
             entity_id = state.get('entity_id', '')
-            friendly_name = state.get('attributes', {}).get('friendly_name', entity_id)
+            attributes = state.get('attributes', {})
+            friendly_name = attributes.get('friendly_name', entity_id)
+            device_class = attributes.get('device_class', '')
+            unit = attributes.get('unit_of_measurement', '')
             
-            # Must contain 'energy' but NOT potenza/fattore/power/voltage/current
-            if ('shelly' in entity_id.lower() and 
-                'energy' in entity_id.lower() and 
-                not any(x in entity_id.lower() for x in ['potenza', 'fattore', 'power_factor', 'voltage', 'current', 'apparent', 'reactive'])):
-                shelly_entities.append({
-                    'entity_id': entity_id,
-                    'friendly_name': friendly_name
-                })
+            # Include only Shelly sensors with energy device_class or kWh/Wh units
+            if 'shelly' in entity_id.lower():
+                if device_class == 'energy' or unit in ['kWh', 'Wh', 'MWh']:
+                    shelly_entities.append({
+                        'entity_id': entity_id,
+                        'friendly_name': friendly_name
+                    })
         
         logger.info(f"Discovery complete: {len(shelly_entities)} Shelly entities found")
         return shelly_entities
