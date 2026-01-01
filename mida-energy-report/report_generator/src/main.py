@@ -1114,7 +1114,7 @@ class ShellyEnergyReport:
         print(f"[INFO] Device report created: {pdf_path.name}")
     
     def _create_device_plots(self, device_data: pd.DataFrame, output_dir: Path, device_name: str) -> List[Path]:
-        """Crea grafici per un dispositivo."""
+        """Create graphs for every device."""
         plot_paths = []
         
         if len(device_data) == 0:
@@ -1172,7 +1172,7 @@ class ShellyEnergyReport:
         return plot_paths
     
     def _create_device_pdf(self, analysis: Dict, pdf_path: Path, plot_paths: List[Path], device_data: pd.DataFrame):
-        """Crea PDF per dispositivo usando il generatore esistente."""
+        """Create PDF per device using the existing generator."""
         try:
             # Use the existing PDF generator with device-specific data
             doc = SimpleDocTemplate(
