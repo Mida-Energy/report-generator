@@ -681,59 +681,10 @@ def home():
                         <option value="90">Last 90 days</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <span class="material-icons">devices</span>
-                    Device Selection & Report Generation
-                </div>
-                <p style="color: #9b9b9b; font-size: 14px; margin-bottom: 16px;">
-                    Select devices and generate their energy reports. The system will automatically collect the latest data from Home Assistant and generate PDF reports.
-                </p>
-                
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; color: #9b9b9b; font-size: 13px; margin-bottom: 8px;">
-                        <span class="material-icons" style="font-size: 16px; vertical-align: middle;">date_range</span>
-                        Data Collection Period
-                    </label>
-                    <select id="timeRange" style="width: 100%; background: #2a2a2a; color: #e1e1e1; border: 1px solid #444; padding: 10px; border-radius: 4px; font-size: 14px;">
-                        <option value="7" selected>Last 7 days</option>
-                        <option value="14">Last 14 days</option>
-                        <option value="30">Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; color: #9b9b9b; font-size: 13px; margin-bottom: 8px;">Select Devices</label>
-                    <div id="deviceList" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 4px; padding: 8px;">
-                        <div style="text-align: center; padding: 20px; color: #9b9b9b;">
-                            <span class="spinner"></span> Loading devices...
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="btn" onclick="generateReportComplete()" style="width: 100%; padding: 14px; font-size: 16px; background: #4CAF50;">
-                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">play_arrow</span>
-                    Collect Data & Generate Report
-                </button>
-                
-                <div id="status" class="status" style="margin-top: 12px;"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <span class="material-icons">schedule</span>
-                    Auto-Update Configuration
-                </div>
-                <p style="color: #9b9b9b; font-size: 14px; margin-bottom: 16px;">
-                    Automatically collect data and generate reports at regular intervals.
-                </p>
-                <div class="info-item" style="border: none; padding: 12px 0;">
+                <div class="info-item" style="border: none; padding: 12px 0; margin-top: 12px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="autoUpdateEnabled" onchange="saveAutoUpdateConfig()" style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer;">
-                        <span style="font-size: 14px;">Enable automatic updates</span>
+                        <input type="checkbox" id="autoUpdateEnabled" onchange="saveAutoUpdateConfig()" style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #03a9f4;">
+                        <span style="font-size: 14px; color: #e1e1e1;">Enable automatic updates</span>
                     </label>
                 </div>
                 <div class="info-item" style="border: none; padding: 12px 0;">
@@ -746,6 +697,32 @@ def home():
                         <option value="168">Weekly</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">devices</span>
+                    Device Selection & Report Generation
+                </div>
+                <p style="color: #9b9b9b; font-size: 14px; margin-bottom: 16px;">
+                    Select devices and generate their energy reports. The system will automatically collect the latest data from Home Assistant and generate PDF reports.
+                </p>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; color: #9b9b9b; font-size: 13px; margin-bottom: 8px;">Select Devices</label>
+                    <div id="deviceList" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 4px; padding: 8px;">
+                        <div style="text-align: center; padding: 20px; color: #9b9b9b;">
+                            <span class="spinner"></span> Loading devices...
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="generateReportComplete()" style="width: 100%; padding: 14px; font-size: 16px; background: #4CAF50;">
+                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">play_arrow</span>
+                    Generate Report
+                </button>
+                
+                <div id="status" class="status" style="margin-top: 12px;"></div>
             </div>
 
             <div class="card">
@@ -784,60 +761,6 @@ def home():
                         statusDiv.style.display = 'none';
                     }, 5000);
                 }
-            }
-            
-            function generateReportComplete() {
-                const btn = event.target;
-                const originalHTML = btn.innerHTML;
-                const days = document.getElementById('timeRange').value;
-                
-                btn.disabled = true;
-                btn.innerHTML = '<span class="material-icons" style="margin-right: 8px;">hourglass_empty</span><span>Processing...</span><span class="spinner"></span>';
-                
-                // Clear any previous status message
-                document.getElementById('status').style.display = 'none';
-                
-                // Step 1: Collect data
-                showStatus(`<strong>Step 1/2:</strong> Fetching data from Home Assistant (last ${days} days)...`, 'info');
-                
-                fetch('collect-data', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ days: parseInt(days) })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Step 2: Generate report
-                        showStatus('<strong>Step 2/2:</strong> Generating PDF report... Please wait.', 'info');
-                        
-                        return fetch('generate', { method: 'POST' })
-                            .then(response => response.json())
-                            .then(genData => {
-                                btn.disabled = false;
-                                btn.innerHTML = originalHTML;
-                                document.getElementById('status').style.display = 'none';
-                                
-                                if (genData.status === 'success') {
-                                    showStatus('<strong>Success!</strong> Report generated successfully (' + genData.pdf_size_kb + ' KB). Check Reports History below.', 'success');
-                                    loadReports();
-                                } else {
-                                    showStatus('<strong>Error:</strong> ' + genData.message, 'error');
-                                }
-                            });
-                    } else {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHTML;
-                        document.getElementById('status').style.display = 'none';
-                        showStatus('<strong>Error:</strong> ' + data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                    document.getElementById('status').style.display = 'none';
-                    showStatus('<strong>Network Error:</strong> ' + error, 'error');
-                });
             }
             
             function generateReportComplete() {
@@ -1048,11 +971,11 @@ def home():
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-                                        <button class="btn" onclick="downloadSpecificReport('${report.filename}')" style="padding: 10px; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-                                            <span class="material-icons" style="font-size: 20px;">download</span>
+                                        <button class="btn" onclick="downloadSpecificReport('${report.filename}')" style="padding: 0; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">
+                                            <span class="material-icons" style="font-size: 20px; line-height: 1;">download</span>
                                         </button>
-                                        <button class="btn" onclick="deleteReport('${report.filename}')" style="padding: 10px; min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e57373;">
-                                            <span class="material-icons" style="font-size: 20px;">delete</span>
+                                        <button class="btn" onclick="deleteReport('${report.filename}')" style="padding: 0; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; background: #e57373;">
+                                            <span class="material-icons" style="font-size: 20px; line-height: 1;">delete</span>
                                         </button>
                                     </div>
                                 `;
