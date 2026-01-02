@@ -1258,8 +1258,18 @@ def generate_report():
         logger.info("Running analysis and generating PDF...")
         analyzer.run_analysis()
         
-        # Check for device-specific PDFs (new multi-device approach)
-        device_pdfs = list((TEMP_OUTPUT_PATH / 'generale').glob('*/report_*.pdf'))
+        # Check for device-specific PDFs - only for selected entities
+        device_pdfs = []
+        if selected_entities:
+            # Build expected PDF names from selected entities
+            for entity_id in selected_entities:
+                pdf_name = f"report_{entity_id}.pdf"
+                pdf_paths = list((TEMP_OUTPUT_PATH / 'generale').glob(f'*/{pdf_name}'))
+                device_pdfs.extend(pdf_paths)
+            logger.info(f"Looking for {len(selected_entities)} selected device reports")
+        else:
+            # No selection - get all generated PDFs
+            device_pdfs = list((TEMP_OUTPUT_PATH / 'generale').glob('*/report_*.pdf'))
         
         if device_pdfs:
             # Multiple device reports generated
