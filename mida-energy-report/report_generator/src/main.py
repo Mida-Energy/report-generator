@@ -1133,8 +1133,11 @@ class ShellyEnergyReport:
         # Create plots
         plot_paths = self._create_device_plots(device_data, grafici_dir, safe_device_name)
         
-        # Create PDF
-        pdf_path = device_dir / f"report_{safe_device_name}.pdf"
+        # Create PDF directly in pdfs directory with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        pdf_filename = f"report_{safe_device_name}_{timestamp}.pdf"
+        pdf_path = Path(self.output_dir).parent / 'pdfs' / pdf_filename
+        pdf_path.parent.mkdir(parents=True, exist_ok=True)
         self._create_device_pdf(analysis, pdf_path, plot_paths, device_data)
         
         print(f"[INFO] Device report created: {pdf_path.name}")

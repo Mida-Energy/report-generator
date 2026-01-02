@@ -50,8 +50,8 @@ else:
     )
     logger = logging.getLogger(__name__)
 
-# Get paths from environment (set by add-on)
-DATA_PATH = Path(os.getenv('DATA_PATH', '/share/energy_reports/data'))
+# Get paths - always use /share for persistence
+DATA_PATH = Path('/share/energy_reports/data')  # Always use /share for data persistence
 TEMP_OUTPUT_PATH = Path('/share/energy_reports/output')  # For charts, temp files
 PDF_OUTPUT_PATH = Path('/share/energy_reports/pdfs')  # For final PDFs
 TEMP_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
@@ -745,6 +745,21 @@ def home():
                 </div>
                 <div id="status" class="status"></div>
             </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="material-icons">history</span>
+                    Reports History
+                </div>
+                <p style="color: #9b9b9b; font-size: 14px; margin-bottom: 16px;">
+                    View and download previously generated reports.
+                </p>
+                <div id="reportsList" style="max-height: 400px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 20px; color: #9b9b9b;">
+                        <span class="spinner"></span> Loading reports...
+                    </div>
+                </div>
+            </div>
         </div>
         <script>
             let availableEntities = [];
@@ -753,6 +768,7 @@ def home():
             // Load devices on page load
             loadDevices();
             loadAutoUpdateConfig();
+            loadReports();
             
             // Check if PDF exists on page load
             fetch('status')
@@ -999,11 +1015,173 @@ def home():
                     showStatus('<strong>Error:</strong> Failed to save configuration', 'error');
                 });
             }
+            
+            function loadReports() {
+                fetch('api/reports')
+                    .then(response => response.json())
+                    .then(data => {
+                        const container = document.getElementById('reportsList');
+                        
+                        if (data.status === 'success' && data.reports.length > 0) {
+                            container.innerHTML = '';
+                            
+                            data.reports.forEach(report => {
+                                const item = document.createElement('div');
+                                item.className = 'device-item';
+                                item.style.cursor = 'default';
+                                
+                                item.innerHTML = `
+                                    <div class="device-info" style="flex: 1;">
+                                        <div class="device-name" style="display: flex; align-items: center; gap: 8px;">
+                                            <span class="material-icons" style="font-size: 20px; color: #4CAF50;">description</span>
+                                            <span>${report.filename}</span>
+                                        </div>
+                                        <div class="device-id" style="display: flex; gap: 16px; margin-top: 4px;">
+                                            <span><span class="material-icons" style="font-size: 14px; vertical-align: middle;">schedule</span> ${report.created}</span>
+                                            <span><span class="material-icons" style="font-size: 14px; vertical-align: middle;">folder</span> ${report.size_kb} KB</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn" onclick="downloadSpecificReport('${report.filename}')" style="padding: 8px 16px;">
+                                            <span class="material-icons" style="font-size: 18px;">download</span>
+                                        </button>
+                                        <button class="btn" onclick="deleteReport('${report.filename}')" style="padding: 8px 16px; background: #e57373;">
+                                            <span class="material-icons" style="font-size: 18px;">delete</span>
+                                        </button>
+                                    </div>
+                                `;
+                                container.appendChild(item);
+                            });
+                        } else {
+                            container.innerHTML = '<div style="text-align: center; padding: 20px; color: #9b9b9b;">No reports generated yet</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to load reports:', error);
+                        document.getElementById('reportsList').innerHTML = 
+                            '<div style="text-align: center; padding: 20px; color: #e57373;">Failed to load reports</div>';
+                    });
+            }
+            
+            function downloadSpecificReport(filename) {
+                window.location.href = 'api/reports/' + filename;
+            }
+            
+            function deleteReport(filename) {
+                if (!confirm(`Are you sure you want to delete ${filename}?`)) {
+                    return;
+                }
+                
+                fetch('api/reports/' + filename, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            showStatus('<strong>Success!</strong> Report deleted successfully.', 'success');
+                            loadReports(); // Reload the list
+                        } else {
+                            showStatus('<strong>Error:</strong> ' + data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showStatus('<strong>Error:</strong> Failed to delete report', 'error');
+                    });
+            }
         </script>
     </body>
     </html>
     """
     return html
+
+
+@app.route('/api/reports', methods=['GET'])
+def get_reports():
+    """Get list of all available PDF reports"""
+    logger.info("API: GET /api/reports")
+    try:
+        reports = []
+        
+        # Search in PDF output directory only
+        if PDF_OUTPUT_PATH.exists():
+            for pdf_file in PDF_OUTPUT_PATH.glob('*.pdf'):
+                stat_info = pdf_file.stat()
+                reports.append({
+                    'filename': pdf_file.name,
+                    'path': str(pdf_file),
+                    'size': stat_info.st_size,
+                    'size_kb': round(stat_info.st_size / 1024, 2),
+                    'created': datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'timestamp': stat_info.st_mtime
+                })
+        
+        # Sort by timestamp (newest first)
+        reports.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        logger.info(f"Found {len(reports)} reports")
+        return jsonify({
+            'status': 'success',
+            'reports': reports
+        })
+    except Exception as e:
+        logger.error(f"Error listing reports: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/reports/<filename>', methods=['GET'])
+def download_report(filename):
+    """Download a specific report by filename"""
+    logger.info(f"API: GET /api/reports/{filename}")
+    try:
+        pdf_file = PDF_OUTPUT_PATH / filename
+        
+        if not pdf_file.exists():
+            return jsonify({
+                'status': 'error',
+                'message': 'Report not found'
+            }), 404
+        
+        return send_file(
+            pdf_file,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        logger.error(f"Error downloading report: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/reports/<filename>', methods=['DELETE'])
+def delete_report(filename):
+    """Delete a specific report by filename"""
+    logger.info(f"API: DELETE /api/reports/{filename}")
+    try:
+        pdf_file = PDF_OUTPUT_PATH / filename
+        
+        if not pdf_file.exists():
+            return jsonify({
+                'status': 'error',
+                'message': 'Report not found'
+            }), 404
+        
+        pdf_file.unlink()
+        logger.info(f"Deleted report: {filename}")
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Report {filename} deleted successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error deleting report: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 @app.route('/health')
@@ -1258,48 +1436,20 @@ def generate_report():
         logger.info("Running analysis and generating PDF...")
         analyzer.run_analysis()
         
-        # Check for device-specific PDFs - only for selected entities
-        device_pdfs = []
-        if selected_entities:
-            # Build expected PDF names from selected entities
-            for entity_id in selected_entities:
-                pdf_name = f"report_{entity_id}.pdf"
-                pdf_path = (TEMP_OUTPUT_PATH / 'generale' / pdf_name)
-                if pdf_path.exists():
-                    device_pdfs.append(pdf_path)
-                    logger.info(f"[INFO] Found PDF for {entity_id}")
-                else:
-                    logger.info(f"[WARN] PDF not found: {pdf_name}")
-            logger.info(f"[INFO] Looking for {len(selected_entities)} selected device reports, found {len(device_pdfs)}")
-        else:
-            # No selection - get all generated PDFs
-            device_pdfs = list((TEMP_OUTPUT_PATH / 'generale').glob('report_*.pdf'))
+        # Check for generated PDFs in PDF_OUTPUT_PATH
+        all_pdfs = list(PDF_OUTPUT_PATH.glob('report_*.pdf'))
+        
+        # Filter for just-generated PDFs (last 10 seconds)
+        import time
+        current_time = time.time()
+        device_pdfs = [pdf for pdf in all_pdfs if (current_time - pdf.stat().st_mtime) < 10]
         
         if device_pdfs:
-            # Multiple device reports generated
-            logger.info(f"Found {len(device_pdfs)} device-specific reports")
-            
-            # Copy all device PDFs to media folder
-            for device_pdf in device_pdfs:
-                dest_pdf = PDF_OUTPUT_PATH / device_pdf.name
-                shutil.copy2(device_pdf, dest_pdf)
-                logger.info(f"  Copied: {device_pdf.name}")
-            
-            # Create a summary file listing all reports
-            summary_file = PDF_OUTPUT_PATH / 'reports_summary.txt'
-            with open(summary_file, 'w') as f:
-                f.write(f"Energy Reports - Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Total devices: {len(device_pdfs)}\n\n")
-                f.write("Available Reports:\n")
-                for pdf in device_pdfs:
-                    f.write(f"  - {pdf.name}\n")
-            
             total_size = sum(pdf.stat().st_size for pdf in device_pdfs)
-            file_size = total_size
             
             logger.info("=" * 60)
             logger.info(f"[SUCCESS] PDF REPORTS GENERATED: {len(device_pdfs)} devices")
-            logger.info(f"  Total size: {round(file_size / 1024, 2)} KB")
+            logger.info(f"  Total size: {round(total_size / 1024, 2)} KB")
             logger.info("=" * 60)
             
             # Cleanup temp filtered directory
@@ -1310,46 +1460,19 @@ def generate_report():
                 'status': 'success',
                 'message': f'{len(device_pdfs)} device reports generated successfully!',
                 'pdf_count': len(device_pdfs),
-                'pdf_size_kb': round(file_size / 1024, 2),
+                'pdf_size_kb': round(total_size / 1024, 2),
                 'timestamp': datetime.now().isoformat(),
                 'device_reports': [pdf.name for pdf in device_pdfs]
             })
         
-        # Fallback: Check for old-style general report
-        temp_pdf_file = TEMP_OUTPUT_PATH / 'generale' / 'report_generale.pdf'
-        logger.info(f"Checking for PDF at: {temp_pdf_file}")
-        
-        if temp_pdf_file.exists():
-            # Move PDF to final location
-            final_pdf_file = PDF_OUTPUT_PATH / 'report_generale.pdf'
-            import shutil
-            shutil.copy2(temp_pdf_file, final_pdf_file)
-            
-            file_size = final_pdf_file.stat().st_size
-            logger.info("=" * 60)
-            logger.info(f"[SUCCESS] PDF GENERATED SUCCESSFULLY: {final_pdf_file}")
-            logger.info(f"  File size: {round(file_size / 1024, 2)} KB")
-            logger.info("=" * 60)
-            
-            # Cleanup temp filtered directory
-            if selected_entities:
-                shutil.rmtree(report_data_dir, ignore_errors=True)
-            
-            return jsonify({
-                'status': 'success',
-                'message': 'Report generated successfully!',
-                'pdf_size_kb': round(file_size / 1024, 2),
-                'timestamp': datetime.now().isoformat(),
-                'download_url': '/download/latest'
-            })
-        else:
-            logger.error("PDF not found after generation")
-            logger.error(f"Expected location: {temp_pdf_file}")
-            logger.error(f"Temp output directory contents: {list(TEMP_OUTPUT_PATH.iterdir()) if TEMP_OUTPUT_PATH.exists() else 'Not found'}")
-            return jsonify({
-                'status': 'error',
-                'message': 'PDF generation failed - file not created'
-            }), 500
+        # No PDFs found
+        logger.error("PDF not found after generation")
+        logger.error(f"PDF output directory: {PDF_OUTPUT_PATH}")
+        logger.error(f"Directory contents: {list(PDF_OUTPUT_PATH.iterdir()) if PDF_OUTPUT_PATH.exists() else 'Not found'}")
+        return jsonify({
+            'status': 'error',
+            'message': 'PDF generation failed - file not created'
+        }), 500
             
     except Exception as e:
         logger.error("=" * 60)
@@ -1363,27 +1486,32 @@ def generate_report():
 
 @app.route('/download/latest')
 def download_latest():
-    """Download the latest PDF report(s) - creates a zip if multiple devices"""
+    """Download the latest PDF report(s) generated in the last 30 seconds"""
     logger.info("=" * 60)
     logger.info("PDF DOWNLOAD REQUESTED")
     logger.info("=" * 60)
     
     try:
-        # Check for multiple device reports
-        device_pdfs = list(PDF_OUTPUT_PATH.glob('report_*.pdf'))
+        # Get all report PDFs
+        all_pdfs = list(PDF_OUTPUT_PATH.glob('report_*.pdf'))
         
-        if len(device_pdfs) > 1:
+        # Filter for recently generated PDFs (last 30 seconds)
+        import time
+        current_time = time.time()
+        recent_pdfs = [pdf for pdf in all_pdfs if (current_time - pdf.stat().st_mtime) < 30]
+        
+        if len(recent_pdfs) > 1:
             # Multiple reports - create zip
             import zipfile
             from io import BytesIO
             
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                for pdf_path in device_pdfs:
+                for pdf_path in recent_pdfs:
                     zip_file.write(pdf_path, pdf_path.name)
             
             zip_buffer.seek(0)
-            logger.info(f"Created zip with {len(device_pdfs)} reports")
+            logger.info(f"Created zip with {len(recent_pdfs)} reports")
             
             return send_file(
                 zip_buffer,
@@ -1392,9 +1520,9 @@ def download_latest():
                 download_name=f'energy_reports_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
             )
         
-        elif len(device_pdfs) == 1:
+        elif len(recent_pdfs) == 1:
             # Single report
-            pdf_file = device_pdfs[0]
+            pdf_file = recent_pdfs[0]
             logger.info(f"Sending single report: {pdf_file.name}")
             return send_file(
                 pdf_file,
@@ -1403,18 +1531,14 @@ def download_latest():
                 download_name=pdf_file.name
             )
         
-        # Fallback to old general report
-        pdf_file = PDF_OUTPUT_PATH / 'report_generale.pdf'
-        logger.info(f"Looking for general PDF at: {pdf_file}")
-        
-        if not pdf_file.exists():
-            logger.error(f"PDF not found at {pdf_file}")
-            logger.error(f"PDF output directory exists: {PDF_OUTPUT_PATH.exists()}")
-            if PDF_OUTPUT_PATH.exists():
-                logger.error(f"PDF output directory contents: {list(PDF_OUTPUT_PATH.iterdir())}")
-            return jsonify({
-                'status': 'error',
-                'message': 'No report found. Generate one first.'
+        # No recent reports found
+        logger.error(f"No recent PDFs found in {PDF_OUTPUT_PATH}")
+        logger.error(f"Total PDFs in directory: {len(all_pdfs)}")
+        if PDF_OUTPUT_PATH.exists():
+            logger.error(f"PDF output directory contents: {[p.name for p in all_pdfs[:5]]}")
+        return jsonify({
+            'status': 'error',
+            'message': 'No recent report found. Generate one first.'
             }), 404
         
         # Get file info
