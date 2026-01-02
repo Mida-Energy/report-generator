@@ -90,21 +90,22 @@ def auto_update_worker():
             with open(config_file, 'r') as f:
                 config = json.load(f)
             
-            if not config.get('enabled', False):
+            interval_hours = config.get('interval_hours', 0)
+            
+            # Skip if automatic generation is disabled (interval_hours = 0 means "Never")
+            if interval_hours == 0 or not config.get('enabled', False):
                 time.sleep(60)
                 continue
-            
-            interval_hours = config.get('interval_hours', 24)
             
             # Check if it's time to run
             now = datetime.now()
             if last_run is None or (now - last_run).total_seconds() >= interval_hours * 3600:
-                logger.info(f"[INFO] Auto-update: Starting scheduled report generation")
+                logger.info(f"[INFO] Auto-report: Starting scheduled report generation")
                 
                 # Load selected entities
                 entities_file = DATA_PATH / 'selected_entities.json'
                 if not entities_file.exists():
-                    logger.warning("[WARN] Auto-update: No entities selected, skipping")
+                    logger.warning("[WARN] Auto-report: No entities selected, skipping")
                     time.sleep(60)
                     continue
                 
@@ -112,12 +113,12 @@ def auto_update_worker():
                     entity_ids = json.load(f)
                 
                 if not entity_ids:
-                    logger.warning("[WARN] Auto-update: Empty entity list, skipping")
+                    logger.warning("[WARN] Auto-report: Empty entity list, skipping")
                     time.sleep(60)
                     continue
                 
                 # Collect data
-                logger.info(f"[INFO] Auto-update: Collecting data for {len(entity_ids)} devices")
+                logger.info(f"[INFO] Auto-report: Collecting data for {len(entity_ids)} devices")
                 end_time = datetime.now()
                 start_time = end_time - timedelta(days=7)  # Default 7 days
                 
@@ -125,29 +126,29 @@ def auto_update_worker():
                 if history_data:
                     csv_file = DATA_PATH / 'all.csv'
                     convert_history_to_csv(history_data, csv_file, entity_ids)
-                    logger.info(f"[SUCCESS] Auto-update: Data saved to {csv_file}")
+                    logger.info(f"[SUCCESS] Auto-report: Data saved to {csv_file}")
                     
                     # Generate reports
-                    logger.info("[INFO] Auto-update: Generating PDF reports")
+                    logger.info("[INFO] Auto-report: Generating PDF reports")
                     report_gen = ShellyEnergyReport(
                         csv_file=str(csv_file),
                         output_dir=str(TEMP_OUTPUT_PATH)
                     )
                     report_gen.generate_all()
-                    logger.info("[SUCCESS] Auto-update: Reports generated successfully")
+                    logger.info("[SUCCESS] Auto-report: Reports generated successfully")
                     
                     last_run = now
                 else:
-                    logger.error("[ERROR] Auto-update: Failed to collect data")
+                    logger.error("[ERROR] Auto-report: Failed to collect data")
                 
             # Sleep for 5 minutes before next check
             time.sleep(300)
             
         except Exception as e:
-            logger.error(f"[ERROR] Auto-update worker error: {e}")
+            logger.error(f"[ERROR] Auto-report worker error: {e}")
             time.sleep(60)
     
-    logger.info("[INFO] Auto-update worker stopped")
+    logger.info("[INFO] Auto-report worker stopped")
 
 
 def get_history_from_ha(entity_ids, start_time=None, end_time=None):
@@ -751,6 +752,10 @@ def home():
             <div class="header">
                 <h1><span class="material-icons">assessment</span>Energy Reports</h1>
                 <p class="subtitle">Generate and manage your energy consumption reports</p>
+                <a href="https://github.com/Mida-Energy/energy-reports" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.8); text-decoration: none; font-size: 13px; margin-top: 8px; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.8)'">
+                    <span class="material-icons" style="font-size: 16px;">code</span>
+                    View on GitHub
+                </a>
             </div>
             
             <div class="card">
@@ -775,20 +780,14 @@ def home():
                         <option value="90">Last 90 days</option>
                     </select>
                 </div>
-                <div class="info-item" style="border: none; padding: 12px 0; margin-top: 12px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="checkbox" id="autoUpdateEnabled" onchange="saveAutoUpdateConfig()" style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #03a9f4;">
-                        <span style="font-size: 14px; color: #e1e1e1;">Enable automatic updates</span>
-                    </label>
-                </div>
-                <div class="info-item" style="border: none; padding: 12px 0;">
-                    <span class="info-label">Update Interval</span>
-                    <select id="autoUpdateInterval" onchange="saveAutoUpdateConfig()" style="background: #2a2a2a; color: #e1e1e1; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 14px;">
-                        <option value="1">Every hour</option>
-                        <option value="6">Every 6 hours</option>
-                        <option value="12">Every 12 hours</option>
-                        <option value="24" selected>Daily</option>
-                        <option value="168">Weekly</option>
+                <div class="info-item">
+                    <span class="info-label">Automatic Report Generation</span>
+                    <select id="autoReportSchedule" onchange="saveAutoReportSchedule()" style="background: #2a2a2a; color: #e1e1e1; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 14px;">
+                        <option value="0" selected>Never</option>
+                        <option value="24">Every day</option>
+                        <option value="168">Every week</option>
+                        <option value="336">Every 2 weeks</option>
+                        <option value="720">Every month</option>
                     </select>
                 </div>
             </div>
@@ -811,10 +810,12 @@ def home():
                     </div>
                 </div>
                 
-                <button class="btn btn-success" onclick="generateReportComplete()" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 500;">
-                    <span class="material-icons" style="margin-right: 8px;">play_arrow</span>
-                    Generate Report
-                </button>
+                <div style="display: flex; justify-content: center; margin-top: 16px;">
+                    <button class="btn btn-success" onclick="generateReportComplete()" style="padding: 16px 32px; font-size: 16px; font-weight: 500;">
+                        <span class="material-icons" style="margin-right: 8px;">play_arrow</span>
+                        Generate Report
+                    </button>
+                </div>
                 
                 <div id="status" class="status" style="margin-top: 12px;"></div>
             </div>
@@ -1007,26 +1008,30 @@ def home():
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            document.getElementById('autoUpdateEnabled').checked = data.config.enabled;
-                            document.getElementById('autoUpdateInterval').value = data.config.interval_hours;
+                            const intervalHours = data.config.interval_hours || 0;
+                            document.getElementById('autoReportSchedule').value = intervalHours;
                         }
                     })
-                    .catch(error => console.error('Failed to load auto-update config:', error));
+                    .catch(error => console.error('Failed to load auto-report config:', error));
             }
             
-            function saveAutoUpdateConfig() {
-                const enabled = document.getElementById('autoUpdateEnabled').checked;
-                const interval = parseInt(document.getElementById('autoUpdateInterval').value);
+            function saveAutoReportSchedule() {
+                const intervalHours = parseInt(document.getElementById('autoReportSchedule').value);
+                const enabled = intervalHours > 0;
                 
                 fetch('api/auto-update/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: enabled, interval_hours: interval })
+                    body: JSON.stringify({ enabled: enabled, interval_hours: intervalHours })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        showStatus('<strong>Success!</strong> Auto-update configuration saved.', 'success');
+                        if (enabled) {
+                            showStatus('<strong>Success!</strong> Automatic report generation scheduled.', 'success');
+                        } else {
+                            showStatus('<strong>Success!</strong> Automatic report generation disabled.', 'success');
+                        }
                     } else {
                         showStatus('<strong>Error:</strong> ' + data.message, 'error');
                     }

@@ -1,14 +1,29 @@
 # Energy Reports - Home Assistant Add-on
 
+[![GitHub](https://img.shields.io/badge/GitHub-energy--reports-blue?logo=github)](https://github.com/Mida-Energy/energy-reports)
+[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)](https://github.com/Mida-Energy/energy-reports/releases)
+
 Generate professional PDF energy reports from your Shelly EM data directly in Home Assistant!
+
+## ✨ What's New in v2.0.0
+
+- 🎨 **Redesigned UI** matching Home Assistant design language
+- 🚀 **One-button workflow** - collect data and generate reports instantly
+- 📊 **Reports History** - view, download, and manage all your reports
+- ⏰ **Automatic scheduling** - generate reports hourly, daily, or weekly
+- 🎯 **Smart device selection** - choose which devices to include in reports
+- 💾 **Persistent storage** - reports saved with timestamps for easy organization
 
 ## What it does
 
-- **Auto-discovers Shelly devices** and fetches their historical data
-- **Generates PDF reports** with charts, statistics, and insights  
-- **One-click download** from Home Assistant dashboard
-- **Professional reports** with daily and historical analysis
-- **Uses Home Assistant history** - no polling, efficient and fast
+- **Auto-discovers Shelly devices** from Home Assistant
+- **One-click report generation** with automatic data collection
+- **Scheduled reports** with configurable intervals (1 hour to 1 week)
+- **Reports management** with history, download, and delete capabilities
+- **Professional PDF reports** with charts, statistics, and insights
+- **Device filtering** - select which devices to include in reports
+- **Uses Home Assistant history API** - efficient and fast, no polling
+- **Modern UI** with Material Design matching Home Assistant style
 
 ---
 

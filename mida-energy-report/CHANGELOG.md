@@ -2,6 +2,41 @@
 
 All notable changes to the Energy Reports add-on will be documented in this file.
 
+## [2.0.0] - 2026-01-02
+
+### Added
+- Completely redesigned UI to match Home Assistant design language
+- One-button report generation workflow (collects data + generates report)
+- Reports History section with view, download, and delete capabilities
+- Auto-update configuration integrated into main Configuration card
+- Automatic report generation at configurable intervals (hourly to weekly)
+- Background worker thread for scheduled report generation
+- PDF files now include timestamps in filename for better organization
+- Material Design icons and color scheme matching Home Assistant
+- Smooth transitions and hover effects throughout UI
+- Persistent storage using `/share` directory for container restarts
+
+### Changed
+- Streamlined UI: merged device selection and report generation into single card
+- Removed separate "Collect Data" and "Generate Report" buttons
+- Configuration card now includes time range and auto-update settings
+- Reports History moved next to device selection for better workflow
+- Button styling updated with proper icon centering and Home Assistant colors
+- Header with gradient background (blue theme)
+- Improved card shadows, borders, and spacing
+- Device items with better hover states and visual feedback
+- Download and delete buttons with perfect icon alignment
+- Status messages with color-coded backgrounds (success/error/info)
+
+### Fixed
+- Device filtering bug - now correctly generates reports only for selected devices
+- CSV file path issues - now correctly saves to `/share/energy_reports/data`
+- PDF naming with dots in entity_ids converted to underscores
+- Duplicate report generation issues resolved
+- Button icon centering perfected across all buttons
+- Auto-update configuration now fully functional with background worker
+- Reports auto-refresh after generation
+
 ## [1.2.0] - 2025-01-XX
 
 ### Added
