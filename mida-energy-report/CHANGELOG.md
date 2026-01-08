@@ -2,6 +2,13 @@
 
 All notable changes to the Energy Reports add-on will be documented in this file.
 
+## [2.1.4] - 2026-01-08
+### Fixed
+- Rimosso footer "Shelly Energy Analyzer" dalla cover page
+- Eliminato PageBreak che lasciava la tabella della sezione 1 sola in una pagina
+- Ottimizzato spacing nella sezione 2 per evitare pagine vuote (ridotto da 12px a 10px)
+- Ridotto spacing dopo previsioni da 15px a 10px per layout più compatto
+
 ## [2.1.3] - 2026-01-08
 
 ### Changed

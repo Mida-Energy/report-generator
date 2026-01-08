@@ -1651,15 +1651,6 @@ class ShellyEnergyReport:
                         spaceAfter=8
                     )))
             
-            story.append(Spacer(1, 150))
-            story.append(Paragraph("Shelly Energy Analyzer", 
-                ParagraphStyle(
-                    name='Footer',
-                    parent=self.pdf_generator.styles['Normal'],
-                    fontSize=10,
-                    textColor=colors.grey,
-                    alignment=1
-                )))
             story.append(PageBreak())
             
             # INDICE
@@ -1690,6 +1681,9 @@ class ShellyEnergyReport:
             story.append(index_table)
             story.append(PageBreak())
             
+            # Import KeepTogether
+            from reportlab.platypus import KeepTogether
+            
             # 1. SINTESI GENERALE
             story.append(Paragraph("1. SINTESI GENERALE E METRICHE PRINCIPALI", self.pdf_generator.styles['SectionTitle']))
             story.append(Spacer(1, 15))
@@ -1716,17 +1710,14 @@ class ShellyEnergyReport:
                 ('FONTSIZE', (0, 1), (-1, -1), 9),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')])
             ]))
-            story.append(summary_table)
-            story.append(Spacer(1, 20))
-            
-            story.append(PageBreak())
+            story.append(KeepTogether([summary_table]))
+            story.append(Spacer(1, 30))
             
             # 2. ANALISI DETTAGLIATA
             story.append(Paragraph("2. ANALISI DETTAGLIATA PER GIORNO", self.pdf_generator.styles['SectionTitle']))
             story.append(Spacer(1, 15))
             
             # Pattern di consumo
-            from reportlab.platypus import KeepTogether
             patterns = self._analyze_consumption_patterns(device_data)
             if patterns and 'time_bands' in patterns:
                 bands_section = []
@@ -1777,7 +1768,7 @@ class ShellyEnergyReport:
                     ))
                 
                 story.append(KeepTogether(bands_section))
-                story.append(Spacer(1, 12))
+                story.append(Spacer(1, 10))
             
             # Anomalie
             from reportlab.platypus import KeepTogether
@@ -1803,7 +1794,7 @@ class ShellyEnergyReport:
                     ))
                 
                 story.append(KeepTogether(anomalies_section))
-                story.append(Spacer(1, 12))
+                story.append(Spacer(1, 10))
             
             # Impatto ambientale
             from reportlab.platypus import KeepTogether
@@ -1835,7 +1826,7 @@ class ShellyEnergyReport:
                 ]))
                 env_section.append(env_table)
                 story.append(KeepTogether(env_section))
-                story.append(Spacer(1, 12))
+                story.append(Spacer(1, 10))
             
             # Previsioni
             predictions = self._generate_predictions(device_data)
@@ -1853,7 +1844,7 @@ class ShellyEnergyReport:
                 for text in pred_text:
                     story.append(Paragraph(text, self.pdf_generator.styles['Normal']))
                     story.append(Spacer(1, 3))
-                story.append(Spacer(1, 15))
+                story.append(Spacer(1, 10))
             
             # Qualità rete
             from reportlab.platypus import KeepTogether
@@ -1886,7 +1877,7 @@ class ShellyEnergyReport:
                 ]))
                 quality_section.append(quality_table)
                 story.append(KeepTogether(quality_section))
-                story.append(Spacer(1, 12))
+                story.append(Spacer(1, 10))
             
             story.append(PageBreak())
             
@@ -1951,7 +1942,7 @@ class ShellyEnergyReport:
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
             ]))
             
-            story.append(action_table)
+            story.append(KeepTogether([action_table]))
             story.append(Spacer(1, 20))
             
             # 4.3 Stima Risparmi Potenziali
