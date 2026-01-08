@@ -1663,6 +1663,144 @@ class ShellyEnergyReport:
             story.append(summary_table)
             story.append(Spacer(1, 20))
             
+            # ANALISI AVANZATE
+            story.append(Paragraph("ANALISI AVANZATA DEI CONSUMI", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 10))
+            
+            # Pattern di consumo
+            patterns = self._analyze_consumption_patterns(device_data)
+            if patterns and 'time_bands' in patterns:
+                story.append(Paragraph("Distribuzione Consumi per Fascia Oraria", self.pdf_generator.styles['SubTitle']))
+                bands_data = [
+                    ["Fascia Oraria", "Energia (kWh)", "% Totale", "Potenza Media (W)"],
+                    ["Notte (00:00-06:00)", 
+                     f"{patterns['time_bands']['night']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['night']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['night']['avg_power']:.0f}"],
+                    ["Mattina (06:00-12:00)", 
+                     f"{patterns['time_bands']['morning']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['morning']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['morning']['avg_power']:.0f}"],
+                    ["Pomeriggio (12:00-18:00)", 
+                     f"{patterns['time_bands']['afternoon']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['afternoon']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['afternoon']['avg_power']:.0f}"],
+                    ["Sera (18:00-24:00)", 
+                     f"{patterns['time_bands']['evening']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['evening']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['evening']['avg_power']:.0f}"]
+                ]
+                
+                bands_table = Table(bands_data, colWidths=[4*cm, 3*cm, 2.5*cm, 3.5*cm])
+                bands_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#8e44ad')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+                ]))
+                story.append(bands_table)
+                story.append(Spacer(1, 10))
+                
+                if 'peak_hour' in patterns:
+                    story.append(Paragraph(
+                        f"<b>Ora di picco:</b> {patterns['peak_hour']}:00 ({patterns['peak_hour_power']:.0f} W) | "
+                        f"<b>Ora minimo:</b> {patterns['lowest_hour']}:00 ({patterns['lowest_hour_power']:.0f} W)",
+                        self.pdf_generator.styles['Normal']
+                    ))
+                story.append(Spacer(1, 15))
+            
+            # Anomalie
+            anomalies = self._detect_anomalies(device_data)
+            if anomalies:
+                story.append(Paragraph("Anomalie e Picchi", self.pdf_generator.styles['SubTitle']))
+                if 'absolute_peak' in anomalies:
+                    peak = anomalies['absolute_peak']
+                    story.append(Paragraph(
+                        f"<b>Picco massimo:</b> {peak['value']:.0f} W il {peak['date']}",
+                        self.pdf_generator.styles['HighlightText']
+                    ))
+                    story.append(Spacer(1, 5))
+                
+                if 'high_night_consumption' in anomalies:
+                    night = anomalies['high_night_consumption']
+                    story.append(Paragraph(
+                        f"⚠ Consumo notturno elevato: {night['night_avg']:.0f} W ({night['night_percentage']:.1f}% del diurno)",
+                        self.pdf_generator.styles['HighlightText']
+                    ))
+                story.append(Spacer(1, 15))
+            
+            # Impatto ambientale
+            environmental = self._calculate_environmental_impact(device_data)
+            if environmental:
+                story.append(Paragraph("Impatto Ambientale", self.pdf_generator.styles['SubTitle']))
+                env_data = [
+                    ["Metrica", "Valore"],
+                    ["CO₂ Prodotta", f"{environmental['co2_kg']:.2f} kg"],
+                    ["Alberi Necessari/anno", f"{environmental['trees_needed']:.1f}"],
+                    ["Equivalente Auto", f"{environmental['km_car_equivalent']:.0f} km"]
+                ]
+                
+                env_table = Table(env_data, colWidths=[6*cm, 5*cm])
+                env_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#27ae60')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+                ]))
+                story.append(env_table)
+                story.append(Spacer(1, 15))
+            
+            # Previsioni
+            predictions = self._generate_predictions(device_data)
+            if predictions:
+                story.append(Paragraph("Previsioni", self.pdf_generator.styles['SubTitle']))
+                pred_text = []
+                if 'avg_daily_last_7_days' in predictions:
+                    pred_text.append(f"• Media ultimi 7 giorni: {predictions['avg_daily_last_7_days']:.2f} kWh/giorno")
+                if 'projected_monthly' in predictions:
+                    pred_text.append(f"• Proiezione mensile: {predictions['projected_monthly']:.2f} kWh")
+                if 'trend' in predictions:
+                    trend = predictions['trend']
+                    pred_text.append(f"• Trend: {trend['direction']} del {trend['percentage']:.1f}%")
+                
+                for text in pred_text:
+                    story.append(Paragraph(text, self.pdf_generator.styles['Normal']))
+                    story.append(Spacer(1, 3))
+                story.append(Spacer(1, 15))
+            
+            # Qualità rete
+            quality = self._analyze_power_quality(device_data)
+            if quality and 'voltage' in quality:
+                story.append(Paragraph("Qualità Rete", self.pdf_generator.styles['SubTitle']))
+                v = quality['voltage']
+                quality_data = [
+                    ["Parametro", "Valore"],
+                    ["Tensione Min/Max", f"{v['min']:.1f} / {v['max']:.1f} V"],
+                    ["Tensione Media", f"{v['avg']:.1f} V"],
+                    ["Stabilità (220-240V)", f"{v['stability_pct']:.1f}%"]
+                ]
+                
+                quality_table = Table(quality_data, colWidths=[6*cm, 5*cm])
+                quality_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e67e22')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+                ]))
+                story.append(quality_table)
+                story.append(Spacer(1, 20))
+            
+            story.append(PageBreak())
+            
             # Plots
             story.append(Paragraph("GRAFICI", self.pdf_generator.styles['SectionTitle']))
             for plot_path in plot_paths:
