@@ -2,6 +2,20 @@
 
 All notable changes to the Energy Reports add-on will be documented in this file.
 
+## [2.1.3] - 2026-01-08
+
+### Changed
+- Ristrutturato PDF con pagina titolo separata
+- Aggiunto indice completo del report con tutte le sezioni
+- Rinumerato tutte le sezioni in modo logico:
+  - 1. Sintesi Generale e Metriche Principali
+  - 2. Analisi Dettagliata per Giorno
+  - 3. Grafici di Sintesi
+  - 4. Raccomandazioni e Piano di Azione (con sottosezioni 4.1, 4.2, 4.3)
+  - 5. Appendice Tecnica
+- Aggiunta sezione Appendice Tecnica con metodologia e parametri di riferimento
+- Migliorato layout copertina con spacing ottimizzato
+
 ## [2.1.2] - 2026-01-08
 
 ### Added

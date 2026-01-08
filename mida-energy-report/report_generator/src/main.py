@@ -1628,15 +1628,71 @@ class ShellyEnergyReport:
             
             story = []
             
-            # Title
+            # COVER PAGE
+            story.append(Spacer(1, 150))
             story.append(Paragraph(f"REPORT DISPOSITIVO", self.pdf_generator.styles['MainTitle']))
+            story.append(Spacer(1, 15))
             story.append(Paragraph(f"{analysis['friendly_name']}", self.pdf_generator.styles['SubTitle']))
-            story.append(Paragraph(f"Entity ID: {analysis['device_id']}", self.pdf_generator.styles['Normal']))
-            story.append(Paragraph(f"Generato il: {datetime.now().strftime('%d/%m/%Y %H:%M')}", self.pdf_generator.styles['Normal']))
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 50))
             
-            # Summary
-            story.append(Paragraph("RIEPILOGO", self.pdf_generator.styles['SectionTitle']))
+            cover_info = [
+                f"<b>Entity ID:</b> {analysis['device_id']}",
+                f"<b>Periodo:</b> {analysis['date_range']['start']} - {analysis['date_range']['end']}",
+                f"<b>Generato il:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            ]
+            
+            for info in cover_info:
+                story.append(Paragraph(info, 
+                    ParagraphStyle(
+                        name='CoverInfo',
+                        parent=self.pdf_generator.styles['Normal'],
+                        fontSize=11,
+                        alignment=1,
+                        spaceAfter=8
+                    )))
+            
+            story.append(Spacer(1, 150))
+            story.append(Paragraph("Shelly Energy Analyzer", 
+                ParagraphStyle(
+                    name='Footer',
+                    parent=self.pdf_generator.styles['Normal'],
+                    fontSize=10,
+                    textColor=colors.grey,
+                    alignment=1
+                )))
+            story.append(PageBreak())
+            
+            # INDICE
+            story.append(Spacer(1, 50))
+            story.append(Paragraph("INDICE DEL REPORT", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 30))
+            
+            index_data = [
+                ["1.", "SINTESI GENERALE E METRICHE PRINCIPALI"],
+                ["2.", "ANALISI DETTAGLIATA PER GIORNO"],
+                ["3.", "GRAFICI DI SINTESI"],
+                ["4.", "RACCOMANDAZIONI E PIANO DI AZIONE"],
+                ["5.", "APPENDICE TECNICA"]
+            ]
+            
+            index_table = Table(index_data, colWidths=[1.5*cm, 14.5*cm])
+            index_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 12),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('LEFTPADDING', (1, 0), (1, -1), 10)
+            ]))
+            
+            story.append(index_table)
+            story.append(PageBreak())
+            
+            # 1. SINTESI GENERALE
+            story.append(Paragraph("1. SINTESI GENERALE E METRICHE PRINCIPALI", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 15))
             
             summary_data = [
                 ["Metrica", "Valore", "Unità"],
@@ -1663,9 +1719,11 @@ class ShellyEnergyReport:
             story.append(summary_table)
             story.append(Spacer(1, 20))
             
-            # ANALISI AVANZATE
-            story.append(Paragraph("ANALISI AVANZATA DEI CONSUMI", self.pdf_generator.styles['SectionTitle']))
-            story.append(Spacer(1, 10))
+            story.append(PageBreak())
+            
+            # 2. ANALISI DETTAGLIATA
+            story.append(Paragraph("2. ANALISI DETTAGLIATA PER GIORNO", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 15))
             
             # Pattern di consumo
             from reportlab.platypus import KeepTogether
@@ -1832,22 +1890,24 @@ class ShellyEnergyReport:
             
             story.append(PageBreak())
             
-            # Plots
-            story.append(Paragraph("GRAFICI", self.pdf_generator.styles['SectionTitle']))
+            # 3. GRAFICI
+            story.append(Paragraph("3. GRAFICI DI SINTESI", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 15))
+            
             for plot_path in plot_paths:
                 if plot_path.exists():
                     img = Image(str(plot_path), width=15*cm, height=9*cm)
                     story.append(img)
                     story.append(Spacer(1, 10))
             
-            # RACCOMANDAZIONI E PIANO DI AZIONE
+            # 4. RACCOMANDAZIONI E PIANO DI AZIONE
             story.append(PageBreak())
             story.append(Paragraph("4. RACCOMANDAZIONI E PIANO DI AZIONE", self.pdf_generator.styles['SectionTitle']))
-            story.append(Spacer(1, 10))
+            story.append(Spacer(1, 15))
             
-            # Analisi dei Trend
-            story.append(Paragraph("Analisi dei Trend", self.pdf_generator.styles['SubTitle']))
-            story.append(Spacer(1, 8))
+            # 4.1 Analisi dei Trend
+            story.append(Paragraph("4.1 Analisi dei Trend", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 10))
             
             trend_analysis = [
                 "• <b>Monitoraggio continuo</b>: Implementare sistema di monitoraggio in tempo reale",
@@ -1859,13 +1919,13 @@ class ShellyEnergyReport:
             
             for item in trend_analysis:
                 story.append(Paragraph(item, self.pdf_generator.styles['Normal']))
-                story.append(Spacer(1, 5))
+                story.append(Spacer(1, 4))
             
-            story.append(Spacer(1, 15))
+            story.append(Spacer(1, 20))
             
-            # Piano di Azione Raccomandato
-            story.append(Paragraph("Piano di Azione Raccomandato", self.pdf_generator.styles['SubTitle']))
-            story.append(Spacer(1, 8))
+            # 4.2 Piano di Azione Raccomandato
+            story.append(Paragraph("4.2 Piano di Azione Raccomandato", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 10))
             
             action_plan = [
                 ["Fase", "Attività", "Timeline", "Responsabile"],
@@ -1894,9 +1954,9 @@ class ShellyEnergyReport:
             story.append(action_table)
             story.append(Spacer(1, 20))
             
-            # Stima Risparmi Potenziali
-            story.append(Paragraph("Stima Risparmi Potenziali", self.pdf_generator.styles['SubTitle']))
-            story.append(Spacer(1, 8))
+            # 4.3 Stima Risparmi Potenziali
+            story.append(Paragraph("4.3 Stima Risparmi Potenziali", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 10))
             
             savings_items = [
                 "• <b>Riduzione picchi del 20%</b>: Risparmio sui costi di potenza contrattuale",
@@ -1919,6 +1979,52 @@ class ShellyEnergyReport:
                 ))
             
             story.append(Spacer(1, 20))
+            
+            # 5. APPENDICE TECNICA
+            story.append(PageBreak())
+            story.append(Paragraph("5. APPENDICE TECNICA", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 15))
+            
+            # Metodologia
+            story.append(Paragraph("<b>Metodologia di Analisi:</b>", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            methodology_items = [
+                "• Dati raccolti tramite Home Assistant History API",
+                "• Periodo di analisi: ultimi 7 giorni",
+                "• Frequenza campionamento: dati aggregati ogni ora",
+                "• Calcolo CO2: 0.233 kg per kWh (mix energetico nazionale)"
+            ]
+            for item in methodology_items:
+                story.append(Paragraph(item, self.pdf_generator.styles['Normal']))
+                story.append(Spacer(1, 4))
+            
+            story.append(Spacer(1, 15))
+            
+            # Parametri
+            story.append(Paragraph("<b>Parametri di Riferimento:</b>", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            params_items = [
+                "• Tensione nominale: 220-240V",
+                "• Fascia notturna: 00:00-06:00",
+                "• Soglia consumo notturno anomalo: >30% del diurno"
+            ]
+            for item in params_items:
+                story.append(Paragraph(item, self.pdf_generator.styles['Normal']))
+                story.append(Spacer(1, 4))
+            
+            story.append(Spacer(1, 15))
+            
+            # Note
+            story.append(Paragraph("<b>Note Tecniche:</b>", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            notes_items = [
+                "• I dati si riferiscono al dispositivo specifico",
+                "• Le previsioni sono basate su medie storiche a 7 giorni",
+                "• I risparmi stimati sono indicativi e dipendono dalle condizioni operative"
+            ]
+            for item in notes_items:
+                story.append(Paragraph(item, self.pdf_generator.styles['Normal']))
+                story.append(Spacer(1, 4))
             
             doc.build(story)
             print(f"[INFO] PDF saved: {pdf_path.name}")
