@@ -1668,9 +1668,13 @@ class ShellyEnergyReport:
             story.append(Spacer(1, 10))
             
             # Pattern di consumo
+            from reportlab.platypus import KeepTogether
             patterns = self._analyze_consumption_patterns(device_data)
             if patterns and 'time_bands' in patterns:
-                story.append(Paragraph("Distribuzione Consumi per Fascia Oraria", self.pdf_generator.styles['SubTitle']))
+                bands_section = []
+                bands_section.append(Paragraph("Distribuzione Consumi per Fascia Oraria", self.pdf_generator.styles['SubTitle']))
+                bands_section.append(Spacer(1, 8))
+                
                 bands_data = [
                     ["Fascia Oraria", "Energia (kWh)", "% Totale", "Potenza Media (W)"],
                     ["Notte (00:00-06:00)", 
@@ -1698,47 +1702,62 @@ class ShellyEnergyReport:
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
                 ]))
-                story.append(bands_table)
-                story.append(Spacer(1, 10))
+                bands_section.append(bands_table)
                 
                 if 'peak_hour' in patterns:
-                    story.append(Paragraph(
+                    bands_section.append(Spacer(1, 8))
+                    bands_section.append(Paragraph(
                         f"<b>Ora di picco:</b> {patterns['peak_hour']}:00 ({patterns['peak_hour_power']:.0f} W) | "
                         f"<b>Ora minimo:</b> {patterns['lowest_hour']}:00 ({patterns['lowest_hour_power']:.0f} W)",
                         self.pdf_generator.styles['Normal']
                     ))
-                story.append(Spacer(1, 15))
+                
+                story.append(KeepTogether(bands_section))
+                story.append(Spacer(1, 12))
             
             # Anomalie
+            from reportlab.platypus import KeepTogether
             anomalies = self._detect_anomalies(device_data)
             if anomalies:
-                story.append(Paragraph("Anomalie e Picchi", self.pdf_generator.styles['SubTitle']))
+                anomalies_section = []
+                anomalies_section.append(Paragraph("Anomalie e Picchi", self.pdf_generator.styles['SubTitle']))
+                anomalies_section.append(Spacer(1, 8))
+                
                 if 'absolute_peak' in anomalies:
                     peak = anomalies['absolute_peak']
-                    story.append(Paragraph(
+                    anomalies_section.append(Paragraph(
                         f"<b>Picco massimo:</b> {peak['value']:.0f} W il {peak['date']}",
                         self.pdf_generator.styles['HighlightText']
                     ))
-                    story.append(Spacer(1, 5))
+                    anomalies_section.append(Spacer(1, 5))
                 
                 if 'high_night_consumption' in anomalies:
                     night = anomalies['high_night_consumption']
-                    story.append(Paragraph(
-                        f"⚠ Consumo notturno elevato: {night['night_avg']:.0f} W ({night['night_percentage']:.1f}% del diurno)",
+                    anomalies_section.append(Paragraph(
+                        f"<b>Consumo notturno elevato:</b> {night['night_avg']:.0f} W ({night['night_percentage']:.1f}% del diurno)",
                         self.pdf_generator.styles['HighlightText']
                     ))
-                story.append(Spacer(1, 15))
+                
+                story.append(KeepTogether(anomalies_section))
+                story.append(Spacer(1, 12))
             
             # Impatto ambientale
+            from reportlab.platypus import KeepTogether
             environmental = self._calculate_environmental_impact(device_data)
             if environmental:
-                story.append(Paragraph("Impatto Ambientale", self.pdf_generator.styles['SubTitle']))
+                env_section = []
+                env_section.append(Paragraph("Impatto Ambientale", self.pdf_generator.styles['SubTitle']))
+                env_section.append(Spacer(1, 8))
+                
                 env_data = [
                     ["Metrica", "Valore"],
-                    ["CO₂ Prodotta", f"{environmental['co2_kg']:.2f} kg"],
+                    ["CO2 Prodotta", f"{environmental['co2_kg']:.2f} kg"],
                     ["Alberi Necessari/anno", f"{environmental['trees_needed']:.1f}"],
                     ["Equivalente Auto", f"{environmental['km_car_equivalent']:.0f} km"]
                 ]
@@ -1750,11 +1769,15 @@ class ShellyEnergyReport:
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
                 ]))
-                story.append(env_table)
-                story.append(Spacer(1, 15))
+                env_section.append(env_table)
+                story.append(KeepTogether(env_section))
+                story.append(Spacer(1, 12))
             
             # Previsioni
             predictions = self._generate_predictions(device_data)
@@ -1775,9 +1798,13 @@ class ShellyEnergyReport:
                 story.append(Spacer(1, 15))
             
             # Qualità rete
+            from reportlab.platypus import KeepTogether
             quality = self._analyze_power_quality(device_data)
             if quality and 'voltage' in quality:
-                story.append(Paragraph("Qualità Rete", self.pdf_generator.styles['SubTitle']))
+                quality_section = []
+                quality_section.append(Paragraph("Qualità Rete", self.pdf_generator.styles['SubTitle']))
+                quality_section.append(Spacer(1, 8))
+                
                 v = quality['voltage']
                 quality_data = [
                     ["Parametro", "Valore"],
@@ -1793,11 +1820,15 @@ class ShellyEnergyReport:
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
                 ]))
-                story.append(quality_table)
-                story.append(Spacer(1, 20))
+                quality_section.append(quality_table)
+                story.append(KeepTogether(quality_section))
+                story.append(Spacer(1, 12))
             
             story.append(PageBreak())
             
@@ -1808,6 +1839,86 @@ class ShellyEnergyReport:
                     img = Image(str(plot_path), width=15*cm, height=9*cm)
                     story.append(img)
                     story.append(Spacer(1, 10))
+            
+            # RACCOMANDAZIONI E PIANO DI AZIONE
+            story.append(PageBreak())
+            story.append(Paragraph("4. RACCOMANDAZIONI E PIANO DI AZIONE", self.pdf_generator.styles['SectionTitle']))
+            story.append(Spacer(1, 10))
+            
+            # Analisi dei Trend
+            story.append(Paragraph("Analisi dei Trend", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            
+            trend_analysis = [
+                "• <b>Monitoraggio continuo</b>: Implementare sistema di monitoraggio in tempo reale",
+                "• <b>Identificazione pattern</b>: Analizzare ricorrenze settimanali e mensili",
+                "• <b>Ottimizzazione oraria</b>: Spostare carichi non critici nelle ore di minor costo",
+                "• <b>Gestione picchi</b>: Implementare strategie di load shedding",
+                "• <b>Manutenzione preventiva</b>: Monitorare efficienza degli impianti"
+            ]
+            
+            for item in trend_analysis:
+                story.append(Paragraph(item, self.pdf_generator.styles['Normal']))
+                story.append(Spacer(1, 5))
+            
+            story.append(Spacer(1, 15))
+            
+            # Piano di Azione Raccomandato
+            story.append(Paragraph("Piano di Azione Raccomandato", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            
+            action_plan = [
+                ["Fase", "Attività", "Timeline", "Responsabile"],
+                ["1", "Analisi approfondita carichi", "2 settimane", "Team Energia"],
+                ["2", "Identificazione ottimizzazioni", "1 settimana", "Team Energia"],
+                ["3", "Pianificazione interventi", "1 mese", "Management"],
+                ["4", "Implementazione", "2-3 mesi", "Team Tecnico"],
+                ["5", "Monitoraggio risultati", "Continuo", "Team Energia"]
+            ]
+            
+            action_table = Table(action_plan, colWidths=[1.5*cm, 6*cm, 3*cm, 3*cm])
+            action_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#27ae60')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+            ]))
+            
+            story.append(action_table)
+            story.append(Spacer(1, 20))
+            
+            # Stima Risparmi Potenziali
+            story.append(Paragraph("Stima Risparmi Potenziali", self.pdf_generator.styles['SubTitle']))
+            story.append(Spacer(1, 8))
+            
+            savings_items = [
+                "• <b>Riduzione picchi del 20%</b>: Risparmio sui costi di potenza contrattuale",
+                "• <b>Ottimizzazione oraria</b>: -10/15% su costo energia tramite tariffe biorarie",
+                "• <b>Miglioramento efficienza</b>: -5/10% su consumi base",
+                "• <b>ROI stimato</b>: 12-18 mesi per interventi di media entità",
+                "• <b>Risparmio annuo stimato</b>: 15-25% sulla bolletta energetica"
+            ]
+            
+            for item in savings_items:
+                story.append(Paragraph(
+                    item,
+                    ParagraphStyle(
+                        name='SavingsText',
+                        parent=self.pdf_generator.styles['Normal'],
+                        fontSize=10,
+                        textColor=colors.HexColor('#c0392b'),
+                        spaceAfter=5
+                    )
+                ))
+            
+            story.append(Spacer(1, 20))
             
             doc.build(story)
             print(f"[INFO] PDF saved: {pdf_path.name}")

@@ -2,6 +2,25 @@
 
 All notable changes to the Energy Reports add-on will be documented in this file.
 
+## [2.1.2] - 2026-01-08
+
+### Added
+- Recommendations and action plan section at the end of reports
+- Trend analysis with 5 key monitoring points
+- Recommended action plan table with timeline and responsibilities
+- Potential savings estimation section
+
+### Fixed
+- CO2 symbol display issues in PDF (changed to plain "CO2")
+- Tables splitting across pages (added KeepTogether)
+- Inconsistent table padding and spacing
+- Optimized vertical spacing throughout the document
+
+### Changed
+- Improved PDF layout with consistent spacing (12px between sections)
+- Enhanced table styling with proper cell padding
+- Better visual hierarchy in recommendations section
+
 ## [2.1.1] - 2026-01-08
 
 ### Fixed
