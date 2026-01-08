@@ -2,6 +2,25 @@
 
 All notable changes to the Energy Reports add-on will be documented in this file.
 
+## [2.1.0] - 2026-01-08
+
+### Added
+- Advanced consumption pattern analysis with hourly breakdown
+- Automatic anomaly detection for unusual consumption spikes
+- Night consumption alerts for detecting standby loads
+- Environmental impact calculations (CO2, trees, car km equivalent)
+- Consumption predictions and trend analysis
+- Power grid quality analysis (voltage stability, power factor)
+- Time band analysis (night, morning, afternoon, evening)
+- Weekday vs weekend consumption comparison
+- Top 5 power peaks tracking
+- Best consumption days identification
+
+### Changed
+- Enhanced PDF reports with 5 new advanced analysis sections
+- Improved report layout with color-coded tables
+- Better data visualization for consumption patterns
+
 ## [2.0.1] - 2026-01-02
 
 ### Changed

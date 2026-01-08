@@ -499,6 +499,225 @@ class PDFReportGenerator:
         
         story.append(PageBreak())
         
+        # NEW: Advanced Analysis Sections
+        # Pattern di consumo
+        patterns = self._analyze_consumption_patterns(all_data)
+        if patterns:
+            story.append(Paragraph("3. ANALISI AVANZATA DEI CONSUMI", self.styles['SectionTitle']))
+            story.append(Spacer(1, 10))
+            
+            # Fasce orarie
+            if 'time_bands' in patterns:
+                story.append(Paragraph("Distribuzione Consumi per Fascia Oraria", self.styles['SubTitle']))
+                bands_data = [
+                    ["Fascia Oraria", "Energia (kWh)", "% del Totale", "Potenza Media (W)"],
+                    ["Notte (00:00-06:00)", 
+                     f"{patterns['time_bands']['night']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['night']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['night']['avg_power']:.0f}"],
+                    ["Mattina (06:00-12:00)", 
+                     f"{patterns['time_bands']['morning']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['morning']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['morning']['avg_power']:.0f}"],
+                    ["Pomeriggio (12:00-18:00)", 
+                     f"{patterns['time_bands']['afternoon']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['afternoon']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['afternoon']['avg_power']:.0f}"],
+                    ["Sera (18:00-24:00)", 
+                     f"{patterns['time_bands']['evening']['total_energy']:.2f}",
+                     f"{patterns['time_bands']['evening']['percentage']:.1f}%",
+                     f"{patterns['time_bands']['evening']['avg_power']:.0f}"]
+                ]
+                
+                bands_table = Table(bands_data, colWidths=[4*cm, 3*cm, 3*cm, 3.5*cm])
+                bands_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#8e44ad')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f4ecf7')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+                ]))
+                story.append(bands_table)
+                story.append(Spacer(1, 15))
+                
+                # Highlight picco e minimo
+                if 'peak_hour' in patterns:
+                    story.append(Paragraph(
+                        f"<b>Ora di picco:</b> {patterns['peak_hour']}:00 con potenza media di {patterns['peak_hour_power']:.0f} W",
+                        self.styles['HighlightText']
+                    ))
+                    story.append(Spacer(1, 5))
+                    story.append(Paragraph(
+                        f"<b>Ora di minimo:</b> {patterns['lowest_hour']}:00 con potenza media di {patterns['lowest_hour_power']:.0f} W",
+                        self.styles['Normal']
+                    ))
+                    story.append(Spacer(1, 15))
+            
+            # Weekend vs Feriali
+            if 'weekday_vs_weekend' in patterns:
+                story.append(Paragraph("Confronto Giorni Feriali vs Weekend", self.styles['SubTitle']))
+                wvw = patterns['weekday_vs_weekend']
+                comparison_data = [
+                    ["Tipo Giorno", "Consumo Medio (kWh)", "Differenza"],
+                    ["Giorni Feriali", f"{wvw['weekday_avg']:.2f}", "-"],
+                    ["Weekend", f"{wvw['weekend_avg']:.2f}", 
+                     f"{'+' if wvw['difference_pct'] > 0 else ''}{wvw['difference_pct']:.1f}%"]
+                ]
+                
+                comp_table = Table(comparison_data, colWidths=[5*cm, 4*cm, 4*cm])
+                comp_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#16a085')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#d5f4e6')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+                ]))
+                story.append(comp_table)
+                story.append(Spacer(1, 20))
+        
+        # Anomalie e picchi
+        anomalies = self._detect_anomalies(all_data)
+        if anomalies:
+            story.append(Paragraph("Rilevamento Anomalie e Picchi", self.styles['SubTitle']))
+            story.append(Spacer(1, 10))
+            
+            if 'absolute_peak' in anomalies:
+                peak = anomalies['absolute_peak']
+                story.append(Paragraph(
+                    f"<b>PICCO MASSIMO ASSOLUTO:</b> {peak['value']:.0f} W registrato il {peak['date']} alle {peak['timestamp']}",
+                    self.styles['HighlightText']
+                ))
+                story.append(Spacer(1, 10))
+            
+            if 'high_night_consumption' in anomalies:
+                night = anomalies['high_night_consumption']
+                story.append(Paragraph(
+                    f"⚠ <b>ATTENZIONE:</b> Rilevato consumo notturno elevato. Il consumo medio notturno "
+                    f"({night['night_avg']:.0f} W) è il {night['night_percentage']:.1f}% del consumo diurno. "
+                    f"Verificare la presenza di carichi costanti non necessari.",
+                    self.styles['HighlightText']
+                ))
+                story.append(Spacer(1, 15))
+            
+            if 'top_5_peaks' in anomalies:
+                story.append(Paragraph("Top 5 Picchi di Potenza:", self.styles['Normal']))
+                for i, peak in enumerate(anomalies['top_5_peaks'], 1):
+                    story.append(Paragraph(
+                        f"{i}. {peak['power']:.0f} W - {peak['timestamp']}",
+                        self.styles['Normal']
+                    ))
+                    story.append(Spacer(1, 3))
+            
+            story.append(Spacer(1, 20))
+        
+        # Impatto ambientale
+        environmental = self._calculate_environmental_impact(all_data)
+        if environmental:
+            story.append(Paragraph("Impatto Ambientale", self.styles['SubTitle']))
+            story.append(Spacer(1, 10))
+            
+            env_data = [
+                ["Metrica", "Valore", "Descrizione"],
+                ["CO₂ Prodotta", f"{environmental['co2_kg']:.2f} kg", "Emissioni equivalenti del periodo"],
+                ["Alberi Necessari", f"{environmental['trees_needed']:.1f}", "Alberi per compensare le emissioni annue"],
+                ["Equivalente Auto", f"{environmental['km_car_equivalent']:.0f} km", "Distanza percorribile con stesse emissioni"]
+            ]
+            
+            env_table = Table(env_data, colWidths=[4.5*cm, 3.5*cm, 5.5*cm])
+            env_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#27ae60')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#d5f4e6')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+            ]))
+            story.append(env_table)
+            story.append(Spacer(1, 20))
+        
+        # Previsioni
+        predictions = self._generate_predictions(all_data)
+        if predictions:
+            story.append(Paragraph("Previsioni e Trend", self.styles['SubTitle']))
+            story.append(Spacer(1, 10))
+            
+            pred_items = []
+            if 'avg_daily_last_7_days' in predictions:
+                pred_items.append(f"<b>Consumo medio ultimi 7 giorni:</b> {predictions['avg_daily_last_7_days']:.2f} kWh/giorno")
+            if 'projected_monthly' in predictions:
+                pred_items.append(f"<b>Proiezione mensile:</b> {predictions['projected_monthly']:.2f} kWh")
+            if 'trend' in predictions:
+                trend = predictions['trend']
+                pred_items.append(
+                    f"<b>Trend:</b> {trend['direction'].upper()} del {trend['percentage']:.1f}% rispetto alla settimana precedente"
+                )
+            if 'best_days' in predictions:
+                pred_items.append(
+                    f"<b>Giorni con minor consumo:</b> {', '.join(predictions['best_days'])} "
+                    f"(media: {predictions['best_days_avg']:.2f} kWh)"
+                )
+            
+            for item in pred_items:
+                story.append(Paragraph(item, self.styles['Normal']))
+                story.append(Spacer(1, 5))
+            
+            story.append(Spacer(1, 20))
+        
+        # Qualità della rete
+        quality = self._analyze_power_quality(all_data)
+        if quality:
+            story.append(Paragraph("Qualità della Rete Elettrica", self.styles['SubTitle']))
+            story.append(Spacer(1, 10))
+            
+            if 'voltage' in quality:
+                v = quality['voltage']
+                voltage_data = [
+                    ["Parametro", "Valore", "Note"],
+                    ["Tensione Minima", f"{v['min']:.1f} V", "Valore minimo rilevato"],
+                    ["Tensione Massima", f"{v['max']:.1f} V", "Valore massimo rilevato"],
+                    ["Tensione Media", f"{v['avg']:.1f} V", "Media del periodo"],
+                    ["Deviazione Standard", f"±{v['std']:.2f} V", "Variabilità della tensione"],
+                    ["Stabilità", f"{v['stability_pct']:.1f}%", "% valori nel range 220-240V"]
+                ]
+                
+                voltage_table = Table(voltage_data, colWidths=[4*cm, 3*cm, 6*cm])
+                voltage_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e67e22')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#fef5e7')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f2f2f2')])
+                ]))
+                story.append(voltage_table)
+                story.append(Spacer(1, 15))
+            
+            if 'power_factor' in quality:
+                pf = quality['power_factor']
+                story.append(Paragraph(
+                    f"<b>Fattore di Potenza:</b> Medio {pf['avg']:.3f} (Min: {pf['min']:.3f}, Max: {pf['max']:.3f})",
+                    self.styles['Normal']
+                ))
+                if pf['avg'] < 0.9:
+                    story.append(Paragraph(
+                        "⚠ Il fattore di potenza è inferiore a 0.9. Considerare l'installazione di rifasatori.",
+                        self.styles['HighlightText']
+                    ))
+                story.append(Spacer(1, 20))
+        
+        story.append(PageBreak())
+        
         # 4. Recommendations and action plan
         story.append(Paragraph("4. RACCOMANDAZIONI E PIANO DI AZIONE", self.styles['SectionTitle']))
         
@@ -755,6 +974,200 @@ class ShellyEnergyReport:
             )
         
         return df
+    
+    def _analyze_consumption_patterns(self, df: pd.DataFrame) -> Dict:
+        """Analisi avanzata dei pattern di consumo."""
+        analysis = {}
+        
+        if len(df) == 0 or 'max_act_power' not in df.columns:
+            return analysis
+        
+        # Analisi fasce orarie
+        if 'hour' in df.columns:
+            hourly_avg = df.groupby('hour')['max_act_power'].mean()
+            analysis['peak_hour'] = int(hourly_avg.idxmax())
+            analysis['lowest_hour'] = int(hourly_avg.idxmin())
+            analysis['peak_hour_power'] = float(hourly_avg.max())
+            analysis['lowest_hour_power'] = float(hourly_avg.min())
+            
+            # Fasce orarie (notte, mattina, pomeriggio, sera)
+            night_mask = (df['hour'] >= 0) & (df['hour'] < 6)
+            morning_mask = (df['hour'] >= 6) & (df['hour'] < 12)
+            afternoon_mask = (df['hour'] >= 12) & (df['hour'] < 18)
+            evening_mask = (df['hour'] >= 18) & (df['hour'] < 24)
+            
+            analysis['time_bands'] = {
+                'night': {
+                    'avg_power': float(df[night_mask]['max_act_power'].mean()) if night_mask.any() else 0,
+                    'total_energy': float(df[night_mask]['total_act_energy'].sum() / 1000) if night_mask.any() else 0,
+                    'percentage': float((df[night_mask]['total_act_energy'].sum() / df['total_act_energy'].sum() * 100)) if night_mask.any() else 0
+                },
+                'morning': {
+                    'avg_power': float(df[morning_mask]['max_act_power'].mean()) if morning_mask.any() else 0,
+                    'total_energy': float(df[morning_mask]['total_act_energy'].sum() / 1000) if morning_mask.any() else 0,
+                    'percentage': float((df[morning_mask]['total_act_energy'].sum() / df['total_act_energy'].sum() * 100)) if morning_mask.any() else 0
+                },
+                'afternoon': {
+                    'avg_power': float(df[afternoon_mask]['max_act_power'].mean()) if afternoon_mask.any() else 0,
+                    'total_energy': float(df[afternoon_mask]['total_act_energy'].sum() / 1000) if afternoon_mask.any() else 0,
+                    'percentage': float((df[afternoon_mask]['total_act_energy'].sum() / df['total_act_energy'].sum() * 100)) if afternoon_mask.any() else 0
+                },
+                'evening': {
+                    'avg_power': float(df[evening_mask]['max_act_power'].mean()) if evening_mask.any() else 0,
+                    'total_energy': float(df[evening_mask]['total_act_energy'].sum() / 1000) if evening_mask.any() else 0,
+                    'percentage': float((df[evening_mask]['total_act_energy'].sum() / df['total_act_energy'].sum() * 100)) if evening_mask.any() else 0
+                }
+            }
+        
+        # Analisi weekend vs feriali
+        if 'weekday' in df.columns:
+            weekend_mask = df['weekday'].isin([5, 6])
+            weekday_mask = ~weekend_mask
+            
+            if weekday_mask.any() and weekend_mask.any():
+                analysis['weekday_vs_weekend'] = {
+                    'weekday_avg': float(df[weekday_mask].groupby('date')['total_act_energy'].sum().mean() / 1000),
+                    'weekend_avg': float(df[weekend_mask].groupby('date')['total_act_energy'].sum().mean() / 1000),
+                    'difference_pct': float(((df[weekend_mask].groupby('date')['total_act_energy'].sum().mean() - 
+                                              df[weekday_mask].groupby('date')['total_act_energy'].sum().mean()) /
+                                             df[weekday_mask].groupby('date')['total_act_energy'].sum().mean() * 100))
+                }
+        
+        return analysis
+    
+    def _detect_anomalies(self, df: pd.DataFrame) -> Dict:
+        """Rilevamento anomalie e picchi."""
+        anomalies = {}
+        
+        if len(df) == 0 or 'max_act_power' not in df.columns:
+            return anomalies
+        
+        # Picco massimo assoluto
+        max_power_idx = df['max_act_power'].idxmax()
+        anomalies['absolute_peak'] = {
+            'value': float(df.loc[max_power_idx, 'max_act_power']),
+            'timestamp': str(df.loc[max_power_idx, 'datetime']) if 'datetime' in df.columns else 'N/A',
+            'date': str(df.loc[max_power_idx, 'date']) if 'date' in df.columns else 'N/A'
+        }
+        
+        # Consumi notturni anomali (00:00-06:00)
+        if 'hour' in df.columns:
+            night_data = df[(df['hour'] >= 0) & (df['hour'] < 6)]
+            if len(night_data) > 0:
+                night_avg = night_data['max_act_power'].mean()
+                day_avg = df[(df['hour'] >= 6) & (df['hour'] < 22)]['max_act_power'].mean()
+                
+                if night_avg > day_avg * 0.3:  # Se consumo notturno > 30% del giorno
+                    anomalies['high_night_consumption'] = {
+                        'night_avg': float(night_avg),
+                        'day_avg': float(day_avg),
+                        'night_percentage': float((night_avg / day_avg * 100))
+                    }
+        
+        # Top 5 picchi
+        top_peaks = df.nlargest(5, 'max_act_power')[['datetime', 'max_act_power']] if 'datetime' in df.columns else pd.DataFrame()
+        if not top_peaks.empty:
+            anomalies['top_5_peaks'] = [
+                {'timestamp': str(row['datetime']), 'power': float(row['max_act_power'])} 
+                for _, row in top_peaks.iterrows()
+            ]
+        
+        return anomalies
+    
+    def _calculate_environmental_impact(self, df: pd.DataFrame) -> Dict:
+        """Calcolo impatto ambientale."""
+        impact = {}
+        
+        if len(df) == 0 or 'total_act_energy' not in df.columns:
+            return impact
+        
+        total_kwh = df['total_act_energy'].sum() / 1000
+        
+        # CO2 emessa (media Italia: 0.233 kg CO2/kWh)
+        co2_factor = 0.233
+        co2_kg = total_kwh * co2_factor
+        impact['co2_kg'] = round(co2_kg, 2)
+        
+        # Alberi necessari per compensare (1 albero assorbe ~22 kg CO2/anno)
+        trees_per_year = co2_kg / 22
+        impact['trees_needed'] = round(trees_per_year, 2)
+        
+        # Equivalente km in auto (media: 0.12 kg CO2/km)
+        km_equivalent = co2_kg / 0.12
+        impact['km_car_equivalent'] = round(km_equivalent, 0)
+        
+        return impact
+    
+    def _generate_predictions(self, df: pd.DataFrame) -> Dict:
+        """Generazione previsioni consumo."""
+        predictions = {}
+        
+        if len(df) == 0 or 'date' not in df.columns or 'total_act_energy' not in df.columns:
+            return predictions
+        
+        # Consumo giornaliero
+        daily_consumption = df.groupby('date')['total_act_energy'].sum() / 1000
+        
+        if len(daily_consumption) < 3:
+            return predictions
+        
+        # Media ultimi 7 giorni
+        last_7_days = daily_consumption.tail(7).mean()
+        predictions['avg_daily_last_7_days'] = round(last_7_days, 2)
+        
+        # Proiezione mensile
+        predictions['projected_monthly'] = round(last_7_days * 30, 2)
+        
+        # Trend (ultimi 7 giorni vs 7 precedenti)
+        if len(daily_consumption) >= 14:
+            last_week = daily_consumption.tail(7).mean()
+            previous_week = daily_consumption.tail(14).head(7).mean()
+            trend_pct = ((last_week - previous_week) / previous_week * 100)
+            predictions['trend'] = {
+                'direction': 'aumento' if trend_pct > 0 else 'diminuzione',
+                'percentage': round(abs(trend_pct), 1)
+            }
+        
+        # Giorni migliori (minor consumo)
+        if len(daily_consumption) >= 3:
+            best_days_idx = daily_consumption.nsmallest(3).index
+            predictions['best_days'] = [str(d) for d in best_days_idx]
+            predictions['best_days_avg'] = round(daily_consumption.nsmallest(3).mean(), 2)
+        
+        return predictions
+    
+    def _analyze_power_quality(self, df: pd.DataFrame) -> Dict:
+        """Analisi qualità della rete elettrica."""
+        quality = {}
+        
+        if len(df) == 0:
+            return quality
+        
+        # Analisi tensione
+        if 'avg_voltage' in df.columns:
+            quality['voltage'] = {
+                'min': round(df['avg_voltage'].min(), 1),
+                'max': round(df['avg_voltage'].max(), 1),
+                'avg': round(df['avg_voltage'].mean(), 1),
+                'std': round(df['avg_voltage'].std(), 2)
+            }
+            
+            # Stabilità tensione (% dentro range 220-240V)
+            stable_voltage = df[(df['avg_voltage'] >= 220) & (df['avg_voltage'] <= 240)]
+            stability_pct = (len(stable_voltage) / len(df) * 100)
+            quality['voltage']['stability_pct'] = round(stability_pct, 1)
+        
+        # Fattore di potenza
+        if 'power_factor_est' in df.columns:
+            pf_data = df[df['power_factor_est'].notna()]
+            if len(pf_data) > 0:
+                quality['power_factor'] = {
+                    'min': round(pf_data['power_factor_est'].min(), 3),
+                    'max': round(pf_data['power_factor_est'].max(), 3),
+                    'avg': round(pf_data['power_factor_est'].mean(), 3)
+                }
+        
+        return quality
     
     def load_all_data(self) -> pd.DataFrame:
         """Load and combine all data."""
